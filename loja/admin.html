@@ -3,16 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administração - Fehuna Nutrition</title>
+    <title>Painel Administrativo - Fehuna Nutrition</title>
     <link rel="stylesheet" href="../styles/admin.css">
     <link rel="stylesheet" href="../minerva/minerva-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <header></header>
-    <main></main>
-    <footer></footer>
-    <script src="../JS/app.js"></script>
-    <script src="../JS/admin.js"></script>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo-section">
+                    <img src="https://i.ibb.co/fd9nN5fX/fehunanutrition-logo.jpg" alt="Logo" class="logo">
+                    <span class="brand-name">Fehuna Admin</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="admin-user">
+                    <span class="admin-name">Administrador</span>
+                    <button class="logout-btn" id="logout-admin">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+        <nav class="sidebar-nav">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#pedidos" class="nav-link" data-section="pedidos">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span>Pedidos</span>
+                        <span class="badge" id="pedidos-count">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#produtos" class="nav-link" data-section="produtos">
+                        <i class="fas fa-box"></i>
+                        <span>Produtos</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#clientes" class="nav-link" data-section="clientes">
+                        <i class="fas fa-users"></i>
+                        <span>Clientes</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#entregadores" class="nav-link" data-section="entregadores">
+                        <i class="fas fa-motorcycle"></i>
+                        <span>Entregadores</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#cupons" class="nav-link" data-section="cupons">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Cupons</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#relatorios" class="nav-link" data-section="relatorios">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Relatórios</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#configuracoes" class="nav-link" data-section="configuracoes">
+                        <i class="fas fa-cog"></i>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="admin-section active">
+            <div class="section-header">
+                <h1>Dashboard</h1>
+                <div class="date-range">
+                    <input type="date" id="date-start" class="date-input">
+                    <span>até</span>
+                    <input type="date" id="date-end" class="date-input">
+                    <button class="btn btn-primary" id="filter-date">Filtrar</button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="total-pedidos">0</h3>
+                        <p>Pedidos Hoje</p>
+                        <span class="stat-change positive">+12%</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="faturamento-dia">R$ 0,00</h3>
+                        <p>Faturamento Hoje</p>
+                        <span class="stat-change positive">+8%</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="novos-clientes">0</h3>
+                        <p>Novos Clientes</p>
+                        <span class="stat-change positive">+15%</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="avaliacao-media">4.8</h3>
+                        <p>Avaliação Média</p>
+                        <span class="stat-change neutral">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Vendas dos Últimos 7 Dias</h3>
+                    <canvas id="sales-chart"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Produtos Mais Vendidos</h3>
+                    <div id="top-products">
+                        <!-- Carregado via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pedidos Section -->
+        <section id="pedidos-section" class="admin-section">
+            <div class="section-header">
+                <h1>Gerenciar Pedidos</h1>
+                <div class="section-actions">
+                    <select id="status-filter" class="filter-select">
+                        <option value="">Todos os Status</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="confirmado">Confirmado</option>
+                        <option value="preparando">Preparando</option>
+                        <option value="saiu_entrega">Saiu para Entrega</option>
+                        <option value="entregue">Entregue</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                    <button class="btn btn-primary" id="refresh-pedidos">
+                        <i class="fas fa-sync-alt"></i>
+                        Atualizar
+                    </button>
+                </div>
+            </div>            <div class="table-container">
+                <div id="orders-container">
+                    <!-- Pedidos serão carregados aqui via JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- Produtos Section -->
+        <section id="produtos-section" class="admin-section">
+            <div class="section-header">
+                <h1>Gerenciar Produtos</h1>
+                <div class="section-actions">
+                    <button class="btn btn-primary" onclick="adminPanel.showAddProductModal()">
+                        <i class="fas fa-plus"></i>
+                        Novo Produto
+                    </button>
+                </div>
+            </div>
+
+            <div id="products-container">
+                <!-- Produtos serão carregados aqui via JavaScript -->
+            </div>
+        </section>
+
+        <!-- Clientes Section -->
+        <section id="clientes-section" class="admin-section">
+            <div class="section-header">
+                <h1>Gerenciar Clientes</h1>
+                <div class="section-actions">
+                    <input type="search" placeholder="Buscar cliente..." class="search-input" id="search-clientes">
+                    <button class="btn btn-primary" id="export-clientes">
+                        <i class="fas fa-download"></i>
+                        Exportar
+                    </button>
+                </div>
+            </div>
+
+            <div id="clients-container">
+                <!-- Clientes serão carregados aqui via JavaScript -->
+            </div>
+        </section><!-- Entregadores Section -->
+        <section id="entregadores-section" class="admin-section">
+            <div class="section-header">
+                <h1>Gerenciar Entregadores</h1>
+                <div class="section-actions">
+                    <select class="filter-select">
+                        <option value="">Todos</option>
+                        <option value="pending">Pendente Aprovação</option>
+                        <option value="approved">Aprovados</option>
+                        <option value="rejected">Rejeitados</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="entregadores-container">
+                <!-- Entregadores serão carregados aqui via JavaScript -->
+            </div>
+        </section>
+
+        <!-- Cupons Section -->
+        <section id="cupons-section" class="admin-section">
+            <div class="section-header">
+                <h1>Gerenciar Cupons</h1>
+            </div>
+
+            <div id="cupons-container">
+                <!-- Cupons serão carregados aqui via JavaScript -->
+            </div>
+        </section>
+
+        <!-- Relatórios Section -->
+        <section id="relatorios-section" class="admin-section">
+            <div class="section-header">
+                <h1>Relatórios e Análises</h1>
+                <div class="section-actions">
+                    <select class="filter-select">
+                        <option value="today">Hoje</option>
+                        <option value="week">Esta Semana</option>
+                        <option value="month">Este Mês</option>
+                        <option value="custom">Período Personalizado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="relatorios-container">
+                <!-- Relatórios serão carregados aqui via JavaScript -->
+            </div>
+        </section>
+
+        <!-- Configurações Section -->
+        <section id="configuracoes-section" class="admin-section">
+            <div class="section-header">
+                <h1>Configurações do Sistema</h1>
+            </div>
+
+            <div id="configuracoes-container">
+                <!-- Configurações serão carregadas aqui via JavaScript -->
+            </div>
+        </section>
+    </main>    <!-- Modal de Pedido -->
+    <div id="order-details-modal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Detalhes do Pedido #<span id="order-modal-id"></span></h3>
+                <span class="close" onclick="adminPanel.closeModal('order-details-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="order-details-grid">
+                    <div class="order-info">
+                        <h4>Informações do Pedido</h4>
+                        <p><strong>Cliente:</strong> <span id="order-modal-customer"></span></p>
+                        <p><strong>Data:</strong> <span id="order-modal-date"></span></p>
+                        <p><strong>Status:</strong> <span id="order-modal-status"></span></p>
+                        <p><strong>Total:</strong> <span id="order-modal-total"></span></p>
+                    </div>
+                    <div class="order-address">
+                        <h4>Endereço de Entrega</h4>
+                        <p id="order-modal-address"></p>
+                    </div>
+                </div>
+                <div class="order-items">
+                    <h4>Itens do Pedido</h4>
+                    <div id="order-modal-items"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Produto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Novo Produto</h3>
+                <span class="close" onclick="adminPanel.closeModal('product-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="product-form">
+                    <div class="form-group">
+                        <label>Nome do Produto</label>
+                        <input type="text" name="name" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Preço</label>
+                            <input type="number" name="price" step="0.01" required class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select name="category" required class="form-input">
+                                <option value="">Selecione...</option>
+                                <option value="Wheys">Wheys</option>
+                                <option value="Creatinas">Creatinas</option>
+                                <option value="Pré-Workouts">Pré-Workouts</option>
+                                <option value="Acessórios">Acessórios</option>
+                                <option value="Roupas">Roupas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Estoque</label>
+                            <input type="number" name="stock" required class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="status" required class="form-input">
+                                <option value="active">Ativo</option>
+                                <option value="inactive">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Imagens (URLs)</label>
+                        <input type="url" name="image1" placeholder="URL da primeira imagem" class="form-input">
+                        <input type="url" name="image2" placeholder="URL da segunda imagem" class="form-input">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="adminPanel.closeModal('product-modal')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>    <!-- Scripts -->
+    <script type="module" src="../JS/firebase-config.js"></script>
+    <script type="module" src="../JS/config.js"></script>
+    <script type="module" src="../JS/ecommerce-service.js"></script>
+    <script type="module" src="../JS/admin.js"></script>
     <script src="../minerva/minerva-assistant.js"></script>
 </body>
 </html>

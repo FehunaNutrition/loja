@@ -6,13 +6,151 @@
     <title>Carrinho - Fehuna Nutrition</title>
     <link rel="stylesheet" href="../styles/carrinho.css">
     <link rel="stylesheet" href="../minerva/minerva-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <header></header>
-    <main></main>
-    <footer></footer>
-    <script src="../JS/app.js"></script>
-    <script src="../JS/carrinho.js"></script>
+    <!-- Header -->
+    <header class="header-main">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-brand">
+                    <img src="https://i.ibb.co/fd9nN5fX/fehunanutrition-logo.jpg" alt="Fehuna Nutrition Logo" class="logo">
+                    <span class="brand-name">Fehuna Nutrition</span>
+                </div>
+                <div class="nav-menu">
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li>
+                        <li class="nav-item"><a href="../index.html#produtos" class="nav-link">Produtos</a></li>
+                        <li class="nav-item"><a href="carrinho.html" class="nav-link active">Carrinho</a></li>
+                        <li class="nav-item"><a href="login.html" class="nav-link">Login</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="carrinho-main">
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="../index.html">Home</a>
+                <span class="separator">></span>
+                <span class="current">Carrinho</span>
+            </div>
+
+            <h1 class="page-title">Meu Carrinho</h1>
+
+            <!-- Carrinho vazio -->
+            <div id="carrinho-vazio" class="carrinho-vazio" style="display: none;">
+                <div class="empty-cart">
+                    <i class="fas fa-shopping-cart empty-icon"></i>
+                    <h2>Seu carrinho está vazio</h2>
+                    <p>Adicione produtos incríveis da Fehuna Nutrition!</p>
+                    <a href="../index.html#produtos" class="btn btn-primary">Ver Produtos</a>
+                </div>
+            </div>
+
+            <!-- Carrinho com itens -->
+            <div id="carrinho-conteudo" class="carrinho-conteudo">
+                <div class="carrinho-grid">
+                    <!-- Lista de itens -->
+                    <div class="carrinho-items">
+                        <div class="items-header">
+                            <h2>Itens no Carrinho (<span id="total-items">0</span>)</h2>
+                            <button class="btn-limpar" id="limpar-carrinho">
+                                <i class="fas fa-trash"></i> Limpar Carrinho
+                            </button>
+                        </div>
+                        
+                        <div id="lista-items" class="lista-items">
+                            <!-- Itens serão carregados aqui via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Resumo do pedido -->
+                    <div class="resumo-pedido">
+                        <div class="resumo-card">
+                            <h3>Resumo do Pedido</h3>
+                            
+                            <div class="resumo-linha">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">R$ 0,00</span>
+                            </div>
+                            
+                            <div class="resumo-linha">
+                                <span>Frete:</span>
+                                <span id="frete">A calcular</span>
+                            </div>
+                            
+                            <div class="resumo-linha desconto" id="linha-desconto" style="display: none;">
+                                <span>Desconto Fidelidade:</span>
+                                <span id="desconto">-R$ 0,00</span>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="resumo-linha total">
+                                <span>Total:</span>
+                                <span id="total">R$ 0,00</span>
+                            </div>
+
+                            <!-- Cupom de desconto -->
+                            <div class="cupom-section">
+                                <h4>Cupom de Desconto</h4>
+                                <div class="cupom-input">
+                                    <input type="text" id="cupom-codigo" placeholder="Digite o código">
+                                    <button id="aplicar-cupom" class="btn btn-outline">Aplicar</button>
+                                </div>
+                                <div id="cupom-feedback" class="cupom-feedback"></div>
+                            </div>
+
+                            <button id="finalizar-compra" class="btn btn-primary btn-finalizar">
+                                <i class="fas fa-credit-card"></i>
+                                Finalizar Compra
+                            </button>
+                            
+                            <div class="continuar-comprando">
+                                <a href="../index.html#produtos">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Continuar Comprando
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de confirmação -->
+    <div id="modal-confirmacao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar Ação</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-mensagem"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancelar" class="btn btn-outline">Cancelar</button>
+                <button id="modal-confirmar" class="btn btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer simplificado -->
+    <footer class="footer-simple">
+        <div class="container">
+            <p>&copy; 2025 Fehuna Nutrition. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="../JS/firebase-config.js"></script>
+    <script type="module" src="../JS/config.js"></script>
+    <script type="module" src="../JS/ecommerce-service.js"></script>
+    <script type="module" src="../JS/carrinho.js"></script>
     <script src="../minerva/minerva-assistant.js"></script>
 </body>
 </html>

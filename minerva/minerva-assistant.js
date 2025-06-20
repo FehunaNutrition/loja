@@ -1,6 +1,4 @@
 // Ultra Evolved Minerva Assistant with Google Gemini Integration
-// Importar sistema centralizado de rate limiting
-import { gitHubAPI } from './github-rate-limit.js';
 
 class MinervaUltraAssistant {
     constructor() {

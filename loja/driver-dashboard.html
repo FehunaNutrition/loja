@@ -3,16 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Entregas - Fehuna Nutrition</title>
+    <title>Painel do Entregador - Fehuna Nutrition</title>
     <link rel="stylesheet" href="../styles/driver-dashboard.css">
     <link rel="stylesheet" href="../minerva/minerva-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <header></header>
-    <main></main>
-    <footer></footer>
-    <script src="../JS/app.js"></script>
-    <script src="../JS/driver-dashboard.js"></script>
+    <!-- Header -->
+    <header class="driver-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo-section">
+                    <img src="https://i.ibb.co/fd9nN5fX/fehunanutrition-logo.jpg" alt="Logo" class="logo">
+                    <span class="brand-name">Fehuna Delivery</span>
+                </div>
+                <div class="driver-status">
+                    <div class="status-indicator" id="status-indicator"></div>
+                    <span id="status-text">Offline</span>
+                    <button class="toggle-status" id="toggle-status">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="driver-info">
+                    <div class="driver-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="driver-details">
+                        <span class="driver-name" id="driver-name">João Silva</span>
+                        <span class="driver-rating">4.8★ (142 entregas)</span>
+                    </div>
+                    <button class="logout-btn" id="logout-driver">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="driver-main">
+        <div class="container">
+            <!-- Dashboard Overview -->
+            <section class="dashboard-overview">
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="entregas-hoje">0</h3>
+                            <p>Entregas Hoje</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="ganhos-hoje">R$ 0,00</h3>
+                            <p>Ganhos Hoje</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="tempo-online">0h 0m</h3>
+                            <p>Tempo Online</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="km-percorridos">0 km</h3>
+                            <p>Km Percorridos</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Current Delivery -->
+            <section class="current-delivery" id="current-delivery" style="display: none;">
+                <div class="delivery-card current">
+                    <div class="delivery-header">
+                        <h3>Entrega Atual</h3>
+                        <div class="delivery-actions">
+                            <button class="btn btn-success" id="confirm-pickup">
+                                <i class="fas fa-check"></i>
+                                Confirmar Coleta
+                            </button>
+                            <button class="btn btn-primary" id="confirm-delivery" style="display: none;">
+                                <i class="fas fa-check-double"></i>
+                                Confirmar Entrega
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="delivery-info">
+                        <div class="customer-info">
+                            <h4>Cliente</h4>
+                            <p class="customer-name" id="current-customer-name">-</p>
+                            <p class="customer-phone" id="current-customer-phone">-</p>
+                        </div>
+                        
+                        <div class="address-info">
+                            <h4>Endereço</h4>
+                            <p class="address" id="current-address">-</p>
+                            <button class="btn btn-outline" id="open-maps">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Abrir no Maps
+                            </button>
+                        </div>
+                        
+                        <div class="order-info">
+                            <h4>Pedido</h4>
+                            <p class="order-id" id="current-order-id">-</p>
+                            <p class="order-value" id="current-order-value">-</p>
+                            <p class="payment-method" id="current-payment">-</p>
+                        </div>
+                    </div>
+                    
+                    <div class="delivery-timer">
+                        <div class="timer-display">
+                            <i class="fas fa-stopwatch"></i>
+                            <span id="delivery-timer">00:00</span>
+                        </div>
+                        <div class="estimated-time">
+                            Tempo estimado: <span id="estimated-time">15 min</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Available Deliveries -->
+            <section class="available-deliveries">
+                <div class="section-header">
+                    <h2>Entregas Disponíveis</h2>
+                    <div class="filter-options">
+                        <select id="distance-filter" class="filter-select">
+                            <option value="">Todas as distâncias</option>
+                            <option value="2">Até 2 km</option>
+                            <option value="5">Até 5 km</option>
+                            <option value="10">Até 10 km</option>
+                        </select>
+                        <button class="btn btn-primary" id="refresh-deliveries">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="deliveries-grid" id="deliveries-grid">
+                    <!-- Carregado via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Delivery History -->
+            <section class="delivery-history">
+                <div class="section-header">
+                    <h2>Histórico de Entregas</h2>
+                    <div class="date-filter">
+                        <input type="date" id="history-date" class="date-input">
+                        <button class="btn btn-outline" id="filter-history">Filtrar</button>
+                    </div>
+                </div>
+                
+                <div class="history-list" id="history-list">
+                    <!-- Carregado via JavaScript -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal de Confirmação -->
+    <div id="modal-confirm" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Confirmar Ação</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Tem certeza que deseja aceitar esta entrega?</p>
+                <div class="delivery-summary" id="modal-delivery-info">
+                    <!-- Info da entrega -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="modal-cancel">Cancelar</button>
+                <button class="btn btn-primary" id="modal-confirm-btn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Avaliação -->
+    <div id="modal-rating" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Avaliação da Entrega</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="rating-section">
+                    <h4>Como foi a entrega?</h4>
+                    <div class="rating-stars">
+                        <i class="fas fa-star" data-rating="1"></i>
+                        <i class="fas fa-star" data-rating="2"></i>
+                        <i class="fas fa-star" data-rating="3"></i>
+                        <i class="fas fa-star" data-rating="4"></i>
+                        <i class="fas fa-star" data-rating="5"></i>
+                    </div>
+                </div>
+                
+                <div class="feedback-section">
+                    <h4>Comentários (opcional)</h4>
+                    <textarea id="delivery-feedback" placeholder="Deixe seu comentário sobre a entrega..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="skip-rating">Pular</button>
+                <button class="btn btn-primary" id="submit-rating">Enviar Avaliação</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="../JS/firebase-config.js"></script>
+    <script type="module" src="../JS/config.js"></script>
+    <script type="module" src="../JS/ecommerce-service.js"></script>
+    <script type="module" src="../JS/driver-dashboard.js"></script>
     <script src="../minerva/minerva-assistant.js"></script>
 </body>
 </html>

@@ -3,23 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fehuna Nutrition - Suplementos</title>
+    <title>Fehuna Nutrition - Suplementos Premium</title>
     <link rel="stylesheet" href="styles/index.css">
     <link rel="stylesheet" href="minerva/minerva-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <header>
-        <img src="https://i.ibb.co/fd9nN5fX/fehunanutrition-logo.jpg" alt="Fehuna Nutrition Logo" style="height:60px;">
-        <!-- Navegação será adicionada aqui -->
+    <!-- Header com navegação -->
+    <header class="header-main">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-brand">
+                    <img src="https://i.ibb.co/fd9nN5fX/fehunanutrition-logo.jpg" alt="Fehuna Nutrition Logo" class="logo">
+                    <span class="brand-name">Fehuna Nutrition</span>
+                </div>
+                  <div class="nav-menu" id="nav-menu">
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="#home" class="nav-link active">Home</a></li>
+                        <li class="nav-item"><a href="#produtos" class="nav-link">Produtos</a></li>
+                        <li class="nav-item"><a href="loja/carrinho.html" class="nav-link">Carrinho <span id="cart-count" class="cart-count">0</span></a></li>
+                        <li class="nav-item"><a href="loja/loyalty.html" class="nav-link">Fidelidade</a></li>
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle">Serviços <i class="fas fa-chevron-down"></i></a>                            <ul class="dropdown-menu">
+                                <li><a href="loja/driver-dashboard.html" class="dropdown-link"><i class="fas fa-motorcycle"></i> Portal Entregadores</a></li>
+                                <li><a href="loja/admin-login.html" class="dropdown-link"><i class="fas fa-cog"></i> Painel Admin</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item"><a href="loja/login.html" class="nav-link">Login</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-toggle" id="nav-toggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
     </header>
-    <main>
-        <h1>Bem-vindo à Fehuna Nutrition</h1>
-        <p>Os melhores suplementos para sua saúde e performance.</p>
-    </main>
-    <footer>
-        <p>&copy; 2025 Fehuna Nutrition</p>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Fehuna Nutrition</h1>
+                <p class="hero-subtitle">Os melhores suplementos para sua saúde e performance</p>
+                <p class="hero-description">Produtos de alta qualidade para potencializar seus resultados na academia e no dia a dia</p>
+                <div class="hero-buttons">
+                    <a href="#produtos" class="btn btn-primary">Ver Produtos</a>
+                    <a href="loja/login.html" class="btn btn-secondary">Criar Conta</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop" alt="Suplementos" class="hero-img">
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Benefícios -->
+    <section class="benefits">
+        <div class="container">
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <i class="fas fa-shipping-fast benefit-icon"></i>
+                    <h3>Entrega Rápida</h3>
+                    <p>Entregamos em todo Brasil com rapidez e segurança</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-medal benefit-icon"></i>
+                    <h3>Qualidade Premium</h3>
+                    <p>Produtos de alta qualidade das melhores marcas</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-heart benefit-icon"></i>
+                    <h3>Saúde em Primeiro</h3>
+                    <p>Focamos na sua saúde e bem-estar</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-phone-alt benefit-icon"></i>
+                    <h3>Suporte 24/7</h3>
+                    <p>Atendimento disponível a qualquer hora</p>
+                </div>
+            </div>        </div>
+    </section>
+
+    <!-- Seção de Acesso Rápido -->
+    <section class="quick-access">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Acesso Rápido</h2>
+                <p class="section-subtitle">Ferramentas e sistemas para uma experiência completa</p>
+            </div>
+            
+            <div class="quick-access-grid">
+                <div class="quick-access-card">
+                    <div class="card-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h3>Programa Fidelidade</h3>
+                    <p>Acumule pontos e ganhe benefícios exclusivos a cada compra</p>
+                    <div class="card-features">
+                        <span class="feature-badge">Pontos por Compra</span>
+                        <span class="feature-badge">Níveis VIP</span>
+                        <span class="feature-badge">Descontos Exclusivos</span>
+                    </div>
+                    <a href="loja/loyalty.html" class="btn btn-primary">Acessar Fidelidade</a>
+                </div>
+                
+                <div class="quick-access-card">
+                    <div class="card-icon">
+                        <i class="fas fa-motorcycle"></i>
+                    </div>
+                    <h3>Portal do Entregador</h3>
+                    <p>Seja nosso parceiro e ganhe dinheiro fazendo entregas</p>
+                    <div class="card-features">
+                        <span class="feature-badge">Renda Extra</span>
+                        <span class="feature-badge">Horários Flexíveis</span>
+                        <span class="feature-badge">App Exclusivo</span>
+                    </div>
+                    <a href="loja/driver-dashboard.html" class="btn btn-secondary">Portal Entregadores</a>
+                </div>
+                
+                <div class="quick-access-card admin-card">
+                    <div class="card-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <h3>Painel Administrativo</h3>
+                    <p>Gerenciamento completo do sistema para administradores</p>
+                    <div class="card-features">
+                        <span class="feature-badge">Dashboard</span>
+                        <span class="feature-badge">Gestão Pedidos</span>
+                        <span class="feature-badge">Relatórios</span>
+                    </div>
+                    <a href="loja/admin-login.html" class="btn btn-admin">Acesso Admin</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção de Produtos -->
+    <section id="produtos" class="produtos">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Nossos Produtos</h2>
+                <p class="section-subtitle">Explore nossa linha completa de suplementos e acessórios</p>
+            </div>
+            
+            <!-- Filtros de Categoria -->
+            <div class="category-filters">
+                <button class="filter-btn active" data-category="todos">Todos</button>
+                <button class="filter-btn" data-category="Wheys">Wheys</button>
+                <button class="filter-btn" data-category="Creatinas">Creatinas</button>
+                <button class="filter-btn" data-category="Pré-Workouts">Pré-Workouts</button>
+                <button class="filter-btn" data-category="Acessórios">Acessórios</button>
+                <button class="filter-btn" data-category="Roupas">Roupas</button>
+            </div>
+
+            <!-- Grid de Produtos -->
+            <div class="produtos-grid" id="produtos-grid">
+                <!-- Produtos serão carregados aqui via JavaScript -->
+            </div>
+            
+            <!-- Botão Ver Mais -->
+            <div class="text-center">
+                <button class="btn btn-outline" id="load-more">Ver Mais Produtos</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção Newsletter -->
+    <section class="newsletter">
+        <div class="container">
+            <div class="newsletter-content">
+                <h2>Receba Ofertas Exclusivas</h2>
+                <p>Cadastre-se e seja o primeiro a saber sobre promoções e novos produtos</p>
+                <form class="newsletter-form" id="newsletter-form">
+                    <input type="email" placeholder="Seu melhor e-mail" class="newsletter-input" required>
+                    <button type="submit" class="btn btn-primary">Cadastrar</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Fehuna Nutrition</h3>
+                    <p>Sua loja especializada em suplementos de qualidade premium.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                  <div class="footer-section">
+                    <h4>Links Úteis</h4>
+                    <ul class="footer-links">
+                        <li><a href="#produtos">Produtos</a></li>
+                        <li><a href="loja/carrinho.html">Carrinho</a></li>
+                        <li><a href="loja/login.html">Minha Conta</a></li>
+                        <li><a href="loja/loyalty.html">Programa Fidelidade</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Serviços</h4>
+                    <ul class="footer-links">
+                        <li><a href="loja/driver-dashboard.html"><i class="fas fa-motorcycle"></i> Portal Entregadores</a></li>
+                        <li><a href="loja/admin-login.html"><i class="fas fa-cog"></i> Painel Admin</a></li>
+                        <li><a href="#" class="minerva-trigger"><i class="fas fa-robot"></i> Assistente Minerva</a></li>
+                        <li><a href="#newsletter"><i class="fas fa-envelope"></i> Newsletter</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Atendimento</h4>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-phone"></i> (11) 99999-9999</li>
+                        <li><i class="fas fa-envelope"></i> contato@fehunanutrition.com</li>
+                        <li><i class="fas fa-clock"></i> Seg-Sex: 8h às 18h</li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Formas de Pagamento</h4>
+                    <div class="payment-methods">
+                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-cc-paypal"></i>
+                        <i class="fas fa-barcode"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Fehuna Nutrition. Todos os direitos reservados.</p>
+            </div>
+        </div>
     </footer>
-    <script src="JS/app.js"></script>
+
+    <!-- Scripts -->
+    <script type="module" src="JS/firebase-config.js"></script>
+    <script type="module" src="JS/app.js"></script>
     <script src="minerva/minerva-assistant.js"></script>
 </body>
 </html>
