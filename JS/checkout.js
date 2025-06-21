@@ -487,10 +487,29 @@ class CheckoutManager {
                             external_reference: paymentResult.external_reference,
                             card_token: paymentResult.card_token,
                             installments: paymentResult.installments
+                        };                    } else if (paymentResult.payment_method === 'pix') {
+                        // PIX precisa ser pago - adicionar dados ao pedido
+                        pedidoData.payment = {
+                            method: 'online',
+                            provider: 'mercadopago',
+                            status: 'pending',
+                            payment_method: 'pix',
+                            payment_id: paymentResult.payment_id,
+                            external_reference: paymentResult.external_reference,
+                            qr_code: paymentResult.qr_code,
+                            qr_code_base64: paymentResult.qr_code_base64
                         };
-                    } else if (paymentResult.payment_method === 'pix') {
-                        // PIX precisa ser pago antes de criar pedido
-                        this.mostrarInterfacePIX(paymentResult, pedidoData);
+                        
+                        // Salvar pedido no Firebase mesmo com status pending
+                        const orderId = await this.salvarPedido(pedidoData);
+                        
+                        if (orderId) {
+                            console.log('✅ Pedido PIX salvo com sucesso:', orderId);
+                            // Mostrar interface PIX no modal de sucesso
+                            this.mostrarSucesso(orderId, pedidoData.payment);
+                        } else {
+                            throw new Error('Erro ao salvar pedido PIX');
+                        }
                         return; // Para execução aqui
                     } else {
                         throw new Error(paymentResult.message || 'Falha no processamento do pagamento online');
@@ -630,8 +649,7 @@ class CheckoutManager {
         // Se for pagamento PIX, mostrar interface de pagamento
         if (paymentData && paymentData.method === 'online' && paymentData.payment_method === 'pix') {
             const modalContent = modal.querySelector('.modal-content');
-            
-            const pixSection = document.createElement('div');
+              const pixSection = document.createElement('div');
             pixSection.className = 'pix-payment-section';
             pixSection.innerHTML = `
                 <hr style="margin: 20px 0;">
@@ -648,12 +666,25 @@ class CheckoutManager {
                         <i class="fas fa-qrcode" style="font-size: 64px; color: #28a745; margin-bottom: 15px;"></i>
                         <p style="margin: 15px 0; font-weight: bold; font-size: 18px;">QR Code PIX</p>
                         <p style="color: #666; margin-bottom: 20px;">
-                            Em produção, o QR Code real apareceria aqui
+                            Valor: <strong>R$ ${parseFloat(paymentData.transaction_amount || 0).toFixed(2)}</strong>
                         </p>
                         <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIiBzdHJva2U9IiNjY2MiLz48dGV4dCB4PSI1MCUiIHk9IjQ1JSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEycHgiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNPRElHTzwvdGV4dD48dGV4dCB4PSI1MCUiIHk9IjU1JSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEycHgiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBJWDwvdGV4dD48L3N2Zz4=" 
-                                 alt="QR Code PIX Simulado" 
-                                 style="max-width: 150px; height: auto;">
+                            <img src="${paymentData.qr_code_base64 || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMDAiIHk9Ijg1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTJweCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q09ESUdPPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTZweCIgZmlsbD0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UElYPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTJweCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UkVBTDwvdGV4dD48L3N2Zz4='}" 
+                                 alt="QR Code PIX" 
+                                 style="max-width: 180px; height: auto; border: 2px solid #28a745; border-radius: 8px;">
+                        </div>
+
+                        <!-- Código PIX Copia e Cola -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #dee2e6;">
+                            <h5 style="margin-bottom: 10px; color: #495057;">
+                                <i class="fas fa-copy"></i> Código PIX Copia e Cola
+                            </h5>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <textarea readonly style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; resize: none; font-family: monospace; font-size: 11px; height: 80px; line-height: 1.2;">${paymentData.qr_code || 'Código PIX não disponível'}</textarea>
+                                <button type="button" onclick="navigator.clipboard.writeText('${paymentData.qr_code || ''}').then(() => { this.innerHTML = '<i class=\\'fas fa-check\\'></i> Copiado!'; setTimeout(() => this.innerHTML = '<i class=\\'fas fa-copy\\'></i> Copiar', 2000); })" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -665,8 +696,8 @@ class CheckoutManager {
                     <ol style="margin: 0; padding-left: 25px; line-height: 1.6;">
                         <li>Abra o app do seu banco ou carteira digital</li>
                         <li>Escolha a opção <strong>PIX</strong></li>
-                        <li>Selecione <strong>"Ler QR Code"</strong></li>
-                        <li>Escaneie o código acima</li>
+                        <li>Selecione <strong>"Ler QR Code"</strong> ou <strong>"Copia e Cola"</strong></li>
+                        <li>Escaneie o código ou cole o código PIX</li>
                         <li>Confirme os dados e o valor</li>
                         <li>Finalize o pagamento</li>
                     </ol>
@@ -675,8 +706,15 @@ class CheckoutManager {
                 <div class="alert alert-info" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 8px; margin-top: 20px;">
                     <p style="margin: 0; text-align: center;">
                         <i class="fas fa-clock"></i> 
-                        <strong>Confirmação automática:</strong> O pagamento será confirmado automaticamente em alguns segundos após a aprovação.
+                        <strong>Confirmação automática:</strong> O pagamento será confirmado automaticamente via webhook.
                     </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="window.checkoutManager.verificarPagamentoPIX('${paymentData.external_reference}')" 
+                            style="padding: 12px 25px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+                        <i class="fas fa-sync-alt"></i> Verificar Pagamento
+                    </button>
                 </div>
             `;
             
@@ -691,171 +729,79 @@ class CheckoutManager {
         modal.style.display = 'block';
     }
 
-    // Mostrar interface PIX para pagamento
-    mostrarInterfacePIX(paymentResult, pedidoData) {
-        // Criar modal PIX personalizado
-        const pixModal = document.createElement('div');
-        pixModal.id = 'modal-pix-payment';
-        pixModal.className = 'modal';
-        pixModal.style.display = 'block';
-        pixModal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px;">
-                <div class="modal-header" style="background: #ff9500; color: white; padding: 20px; text-align: center;">
-                    <h2><i class="fas fa-qrcode"></i> Pagamento PIX</h2>
-                    <p style="margin: 5px 0 0 0;">Complete o pagamento para finalizar seu pedido</p>
-                </div>
-                
-                <div class="modal-body" style="padding: 30px;">
-                    <div class="alert alert-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <strong>⚠️ Importante:</strong> Seu pedido será criado apenas após a confirmação do pagamento PIX.
-                    </div>
-                    
-                    <div style="text-align: center; margin: 20px 0;">
-                        <div style="background: #f8f9fa; padding: 30px; border-radius: 12px; border: 2px dashed #28a745;">
-                            <i class="fas fa-qrcode" style="font-size: 64px; color: #28a745; margin-bottom: 15px;"></i>
-                            <p style="margin: 15px 0; font-weight: bold; font-size: 18px;">QR Code PIX</p>
-                            <p style="color: #666; margin-bottom: 20px;">
-                                Valor: <strong>R$ ${parseFloat(pedidoData.total || 0).toFixed(2)}</strong>
-                            </p>                            <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
-                                <img src="${paymentResult.qr_code_base64 || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMDAiIHk9Ijg1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTJweCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q09ESUdPPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTZweCIgZmlsbD0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UElYPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTJweCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UkVBTDwvdGV4dD48L3N2Zz4='}" 
-                                     alt="QR Code PIX" 
-                                     style="max-width: 180px; height: auto; border: 2px solid #28a745; border-radius: 8px;">
-                            </div>
-                            
-                            <!-- Código PIX Copia e Cola -->
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #dee2e6;">
-                                <h5 style="margin-bottom: 10px; color: #495057;">
-                                    <i class="fas fa-copy"></i> Código PIX Copia e Cola
-                                </h5>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <textarea readonly style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; resize: none; font-family: monospace; font-size: 11px; height: 80px; line-height: 1.2;">${paymentResult.qr_code || 'Código PIX não disponível'}</textarea>
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(() => { this.innerHTML = '<i class=\\'fas fa-check\\'></i> Copiado!'; setTimeout(() => this.innerHTML = '<i class=\\'fas fa-copy\\'></i> Copiar', 2000); })" style="white-space: nowrap;">
-                                        <i class="fas fa-copy"></i> Copiar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="pix-instructions" style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <h5 style="color: #0056b3; margin-bottom: 15px;">
-                            <i class="fas fa-mobile-alt"></i> Como pagar via PIX:
-                        </h5>
-                        <ol style="margin: 0; padding-left: 25px; line-height: 1.6;">
-                            <li>Abra o app do seu banco ou carteira digital</li>
-                            <li>Escolha a opção <strong>PIX</strong></li>
-                            <li>Selecione <strong>"Ler QR Code"</strong></li>
-                            <li>Escaneie o código acima</li>
-                            <li>Confirme os dados e o valor</li>
-                            <li>Finalize o pagamento</li>
-                        </ol>
-                    </div>
-                    
-                    <div class="alert alert-info" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                        <p style="margin: 0; text-align: center;">
-                            <i class="fas fa-clock"></i> 
-                            <strong>Tempo para pagamento:</strong> 30 minutos
-                        </p>
-                    </div>
-                </div>
-                  <div class="modal-footer" style="padding: 20px; text-align: center; border-top: 1px solid #dee2e6; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()" style="min-width: 120px;">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" onclick="checkoutManager.verificarPagamentoPIX('${paymentResult.external_reference}')" style="min-width: 160px;">
-                        <i class="fas fa-sync-alt"></i> Verificar Pagamento
-                    </button>
-                    <p style="margin: 10px 0 0 0; font-size: 12px; color: #666; width: 100%; text-align: center;">
-                        Aguardando confirmação do pagamento...
-                    </p>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(pixModal);
-        
-        // Armazenar dados do pedido para criar após pagamento
-        this.pendingPixOrder = {
-            paymentResult: paymentResult,
-            pedidoData: pedidoData
-        };
-        
-        console.log('Interface PIX exibida. Aguardando pagamento...');
-    }    // Verificar status do pagamento PIX
+    // Mostrar interface PIX para pagamento    // Verificar status do pagamento PIX - VERSÃO REAL
     async verificarPagamentoPIX(reference) {
         try {
             console.log('🔍 Verificando pagamento PIX:', reference);
             
-            // Em produção, isso consultaria a API do MercadoPago
-            // Por enquanto, simular verificação
             const button = event.target;
             const originalContent = button.innerHTML;
             
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
             button.disabled = true;
             
-            // Simular consulta (em produção seria uma API call)
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Fazer consulta REAL à API do Mercado Pago via webhook/backend
+            const response = await fetch(`https://vercel-backend-lovat-five.vercel.app/api/webhook?check_payment=${reference}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            // Simular aprovação (80% de chance)
-            const isPaid = Math.random() > 0.2;
-            
-            if (isPaid) {
-                // Pagamento aprovado - criar pedido
-                if (this.pendingPixOrder) {
-                    const pedidoData = this.pendingPixOrder.pedidoData;
-                    pedidoData.payment = {
-                        method: 'online',
-                        provider: 'mercadopago',
-                        status: 'approved',
-                        payment_method: 'pix',
-                        external_reference: reference,
-                        pix_transaction_id: 'PIX_' + Date.now()
-                    };
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (result.status === 'approved') {
+                    // Pagamento aprovado!
+                    button.innerHTML = '<i class="fas fa-check"></i> Pagamento Confirmado!';
+                    button.style.background = '#28a745';
                     
-                    const result = await ecommerceService.createOrder(pedidoData);
+                    setTimeout(() => {
+                        alert('🎉 Pagamento PIX confirmado! Seu pedido está sendo processado.');
+                        window.location.href = '/';
+                    }, 2000);
                     
-                    if (result.success) {
-                        // Remover modal PIX
-                        document.getElementById('modal-pix-payment')?.remove();
-                        
-                        // Limpar carrinho
-                        localStorage.removeItem('carrinho');
-                        localStorage.removeItem('checkout-data');
-                        
-                        // Mostrar sucesso
-                        this.mostrarModalConfirmacao(result.data, pedidoData.payment);
-                        
-                        // Enviar email
-                        await emailService.sendOrderConfirmation(pedidoData, result.data);
-                        
-                        console.log('✅ Pagamento PIX confirmado e pedido criado!');
-                    } else {
-                        throw new Error('Erro ao criar pedido após pagamento');
-                    }
+                } else if (result.status === 'pending') {
+                    // Ainda pendente
+                    button.innerHTML = '<i class="fas fa-clock"></i> Ainda Pendente';
+                    button.style.background = '#ffc107';
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalContent;
+                        button.style.background = '#007bff';
+                        button.disabled = false;
+                    }, 3000);
+                    
+                } else {
+                    // Erro ou rejeitado
+                    button.innerHTML = '<i class="fas fa-times"></i> Erro';
+                    button.style.background = '#dc3545';
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalContent;
+                        button.style.background = '#007bff';
+                        button.disabled = false;
+                    }, 3000);
                 }
             } else {
-                // Pagamento ainda pendente
-                button.innerHTML = '<i class="fas fa-clock"></i> Ainda pendente';
-                setTimeout(() => {
-                    button.innerHTML = originalContent;
-                    button.disabled = false;
-                }, 3000);
+                throw new Error('Erro na consulta');
             }
             
         } catch (error) {
-            console.error('❌ Erro ao verificar pagamento PIX:', error);
-            this.mostrarNotificacao('Erro ao verificar pagamento: ' + error.message, 'error');
+            console.error('❌ Erro ao verificar pagamento:', error);
             
-            // Restaurar botão
-            if (event?.target) {                event.target.innerHTML = '<i class="fas fa-sync-alt"></i> Verificar Pagamento';
-                event.target.disabled = false;
-            }
+            const button = event.target;
+            button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro na verificação';
+            button.style.background = '#dc3545';
+            
+            setTimeout(() => {
+                button.innerHTML = '<i class="fas fa-sync-alt"></i> Verificar Pagamento';
+                button.style.background = '#007bff';                button.disabled = false;
+            }, 3000);
         }
     }
 
     // Função auxiliar para mostrar notificações
-
     mostrarNotificacao(mensagem, tipo = 'info') {
         const notificacao = document.createElement('div');
         notificacao.className = `notificacao notificacao-${tipo}`;

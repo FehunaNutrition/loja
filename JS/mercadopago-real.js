@@ -1,21 +1,20 @@
 // MercadoPago Real Integration - Sistema Profissional
-export class MercadoPagoManager {
-    constructor() {
-        // Configurações reais do Mercado Pago
+export class MercadoPagoManager {    constructor() {
+        // Configurações REAIS do Mercado Pago - PRODUÇÃO
         this.config = {
             PUBLIC_KEY: 'APP_USR-19aa9e0b-8c9c-490e-a086-deba63440ebb',
             ACCESS_TOKEN: 'APP_USR-4131876402317524-051114-b8749a0bc7e14c962661536fb5363405-1957801625',
             BASE_URL: 'https://api.mercadopago.com',
-            SANDBOX: true // Para desenvolvimento - mude para false em produção
+            SANDBOX: false // AMBIENTE DE PRODUÇÃO
         };
         
         this.isProduction = !this.config.SANDBOX;
-        this.baseUrl = this.config.SANDBOX ? 'https://api.mercadopago.com' : 'https://api.mercadopago.com';
+        this.baseUrl = this.config.BASE_URL;
         
-        console.log('🚀 MercadoPagoManager ADAPTADO para HTML+Firebase');
-        console.log('💡 Para usar APIs reais, implemente um backend (Node.js, PHP, etc.)');
-        console.log('🎯 Versão atual: Simulação realista para frontend');
-        console.log('Ambiente:', this.config.SANDBOX ? 'SANDBOX' : 'PRODUÇÃO');
+        console.log('🚀 MercadoPagoManager REAL - AMBIENTE DE PRODUÇÃO');
+        console.log('� Usando credenciais de PRODUÇÃO');
+        console.log('⚠️  ATENÇÃO: Transações serão REAIS!');
+        console.log('🌐 Base URL:', this.baseUrl);
         
         this.initializeForm();
     }
@@ -291,13 +290,12 @@ export class MercadoPagoManager {
         if (errorSpan) {
             errorSpan.style.display = 'none';
         }
-    }    // Processar pagamento PIX (versão simulada para frontend)
+    }    // Processar pagamento PIX - VERSÃO REAL
     async processPixPayment(orderData) {
         try {
-            console.log('🔄 Criando pagamento PIX (simulado para frontend)...');
+            console.log('🔄 Criando pagamento PIX REAL via API...');
             
-            // Para frontend HTML + Firebase, simular criação do PIX
-            // Em produção, isso seria feito pelo seu backend
+            // Preparar dados do pagamento PIX
             const pixData = {
                 transaction_amount: parseFloat(orderData.total),
                 payment_method_id: 'pix',
@@ -308,58 +306,52 @@ export class MercadoPagoManager {
                 },
                 external_reference: orderData.orderId || 'ORDER_' + Date.now(),
                 description: `Pedido Fehuna Nutrition - ${orderData.items?.length || 0} item(s)`,
+                notification_url: 'https://vercel-backend-lovat-five.vercel.app/api/webhook'
             };
-              console.log('📤 Dados PIX preparados:', pixData);
             
-            // Gerar código PIX real
-            const pixCodeString = this.generatePixCode(orderData);
+            console.log('📤 Enviando dados PIX para API:', pixData);
             
-            // Gerar QR Code real
-            const qrCodeBase64 = this.generateQRCodeBase64(pixCodeString);
-            
-            // Simular resposta da API do MercadoPago
-            const simulatedResponse = {
-                id: 'pix_' + Date.now() + '_' + Math.random().toString(36).substring(2),
-                status: 'pending',
-                status_detail: 'pending_waiting_payment',
-                payment_method_id: 'pix',
-                payment_type_id: 'bank_transfer',
-                transaction_amount: parseFloat(orderData.total),
-                currency_id: 'BRL',
-                external_reference: pixData.external_reference,
-                date_created: new Date().toISOString(),
-                date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min
-                point_of_interaction: {
-                    type: 'PIX',
-                    transaction_data: {
-                        qr_code_base64: qrCodeBase64,
-                        qr_code: pixCodeString,
-                        ticket_url: `${window.location.origin}/checkout.html?payment_id=${pixData.external_reference}`
-                    }
+            // Fazer chamada REAL para a API do Mercado Pago
+            const response = await fetch(`${this.baseUrl}/v1/payments`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.config.ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'X-Idempotency-Key': `${Date.now()}-${Math.random()}`
                 },
-                payer: pixData.payer
-            };
+                body: JSON.stringify(pixData)
+            });
             
-            console.log('✅ PIX simulado criado com sucesso:', simulatedResponse.id);
+            if (!response.ok) {
+                throw new Error(`Erro na API do Mercado Pago: ${response.status} - ${response.statusText}`);
+            }
             
+            const paymentResponse = await response.json();
+            console.log('✅ Resposta da API do Mercado Pago:', paymentResponse);
+            
+            // Retornar dados formatados
             return {
-                success: false, // PIX não confirma imediatamente
-                payment_id: simulatedResponse.id,
-                status: simulatedResponse.status,
+                success: false, // PIX nunca é aprovado imediatamente
+                payment_id: paymentResponse.id,
+                status: paymentResponse.status,
                 payment_method: 'pix',
-                qr_code_base64: simulatedResponse.point_of_interaction.transaction_data.qr_code_base64,
-                qr_code: simulatedResponse.point_of_interaction.transaction_data.qr_code,
-                external_reference: simulatedResponse.external_reference,
-                expires_at: simulatedResponse.date_of_expiration,
-                ticket_url: simulatedResponse.point_of_interaction.transaction_data.ticket_url
+                qr_code_base64: paymentResponse.point_of_interaction?.transaction_data?.qr_code_base64,
+                qr_code: paymentResponse.point_of_interaction?.transaction_data?.qr_code,
+                external_reference: paymentResponse.external_reference,
+                expires_at: paymentResponse.date_of_expiration,
+                ticket_url: paymentResponse.point_of_interaction?.transaction_data?.ticket_url,
+                transaction_amount: paymentResponse.transaction_amount
             };
             
         } catch (error) {
-            console.error('❌ Erro ao criar pagamento PIX:', error);
+            console.error('❌ Erro ao criar pagamento PIX REAL:', error);
+            
+            // Se falhar, retornar erro mas com estrutura válida
             return {
                 success: false,
                 error: `Erro no PIX: ${error.message}`,
-                payment_method: 'pix'
+                payment_method: 'pix',
+                status: 'failed'
             };
         }
     }
