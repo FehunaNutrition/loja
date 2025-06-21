@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // ============ IMAGENS DE PRODUTOS ============
+    match /products/{productId}/{allPaths=**} {
+      // Qualquer pessoa pode ler imagens de produtos
+      allow read: if true;
+      
+      // Apenas admins podem fazer upload de imagens de produtos
+      allow write: if request.auth != null && 
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size < 5 * 1024 * 1024; // Máximo 5MB
+    }
+    
+    // ============ DOCUMENTOS DE ENTREGADORES ============
+    match /drivers/{driverId}/{allPaths=**} {
+      // Entregadores podem fazer upload de seus documentos
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == driverId ||
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin') &&
+        request.resource.size < 10 * 1024 * 1024; // Máximo 10MB
+    }
+    
+    // ============ AVATARES DE USUÁRIOS ============
+    match /avatars/{userId} {
+      // Usuários podem fazer upload de seus avatares
+      allow read, write: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size < 2 * 1024 * 1024; // Máximo 2MB
+    }
+  }
+}

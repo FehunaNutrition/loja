@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============ USUÁRIOS ============
+    match /users/{userId} {
+      // Usuários podem ler e editar apenas seus próprios dados
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Admins podem ler todos os usuários
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Admins podem atualizar roles de outros usuários
+      allow update: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        request.resource.data.keys().hasOnly(['role', 'updatedAt']);
+    }
+    
+    // ============ PRODUTOS ============
+    match /products/{productId} {
+      // Qualquer pessoa pode ler produtos ativos
+      allow read: if true;
+      
+      // Apenas admins podem criar, editar e deletar produtos
+      allow create, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ============ PEDIDOS ============
+    match /orders/{orderId} {
+      // Usuários autenticados podem ler apenas seus próprios pedidos
+      // Admins podem ler todos os pedidos
+      allow read: if request.auth != null && 
+        (resource.data.userId == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Qualquer pessoa pode criar pedidos (usuários logados e visitantes)
+      allow create: if true;
+      
+      // Apenas admins e entregadores podem atualizar pedidos
+      allow update: if request.auth != null && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.approved == true);
+      
+      // Não permitir deletar pedidos
+      allow delete: if false;
+    }
+    
+    // ============ ENTREGADORES ============
+    match /drivers/{driverId} {
+      // Entregadores podem ler e editar apenas seus próprios dados
+      allow read, update: if request.auth != null && 
+        (request.auth.uid == driverId ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Qualquer pessoa pode se cadastrar como entregador
+      allow create: if request.auth != null &&
+        request.resource.data.keys().hasAll(['name', 'email', 'phone', 'vehicle']) &&
+        request.resource.data.status == 'pending_approval' &&
+        request.resource.data.approved == false;
+      
+      // Apenas admins podem aprovar entregadores
+      allow update: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        request.resource.data.keys().hasOnly(['approved', 'status', 'approvedAt']);
+    }
+    
+    // ============ CUPONS ============
+    match /coupons/{couponId} {
+      // Qualquer pessoa pode ler cupons ativos
+      allow read: if resource.data.isActive == true;
+      
+      // Apenas admins podem criar e gerenciar cupons
+      allow create, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Usuários autenticados podem usar cupons (incrementar contador)
+      allow update: if request.auth != null &&
+        request.resource.data.keys().hasOnly(['usageCount', 'lastUsed']) &&
+        request.resource.data.usageCount == resource.data.usageCount + 1;
+    }
+    
+    // ============ NOTIFICAÇÕES ============
+    match /notifications/{notificationId} {
+      // Usuários podem ler notificações direcionadas a eles
+      allow read: if request.auth != null && 
+        (resource.data.userId == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Apenas sistema e admins podem criar notificações
+      allow create: if request.auth != null;
+      
+      // Usuários podem marcar como lida
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['read', 'readAt']);
+    }
+    
+    // ============ REVIEWS ============
+    match /reviews/{reviewId} {
+      // Qualquer pessoa pode ler reviews aprovadas
+      allow read: if resource.data.approved == true;
+      
+      // Usuários autenticados podem criar reviews
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['productId', 'rating', 'comment']) &&
+        request.resource.data.rating is number &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5;
+      
+      // Apenas admins podem aprovar/reprovar reviews
+      allow update: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        request.resource.data.keys().hasOnly(['approved', 'approvedAt']);
+    }
+    
+    // ============ CONFIGURAÇÕES ============
+    match /settings/{settingId} {
+      // Qualquer pessoa pode ler configurações públicas
+      allow read: if true;
+      
+      // Apenas admins podem modificar configurações
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ============ ANALYTICS ============
+    match /analytics/{analyticsId} {
+      // Apenas admins podem ler analytics
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Sistema pode criar analytics
+      allow create: if true;
+    }
+    
+    // ============ CHAT/MENSAGENS ============
+    match /messages/{messageId} {
+      // Usuários podem ler mensagens de conversas que participam
+      allow read: if request.auth != null && 
+        (resource.data.senderId == request.auth.uid ||
+         resource.data.receiverId == request.auth.uid ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Usuários podem enviar mensagens
+      allow create: if request.auth != null &&
+        request.resource.data.senderId == request.auth.uid;
+      
+      // Usuários podem marcar como lida
+      allow update: if request.auth != null && 
+        resource.data.receiverId == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['read', 'readAt']);
+    }
+  }
+}

@@ -1,0 +1,32 @@
+servidor SMTP:
+
+email: mikaelferreira@fehunasuplementos.shop
+senha: NOva+@87el
+configs:
+Protocolo
+Nome
+Porta
+Criptografia
+Incoming server (IMAP)
+
+imap.hostinger.com
+
+993
+
+SSL
+
+Incoming server (POP)
+
+pop.hostinger.com
+
+995
+
+SSL
+
+Outgoing server (SMTP)
+
+smtp.hostinger.com
+
+465
+
+SSL

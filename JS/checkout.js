@@ -1,15 +1,16 @@
 // Funcionalidades do Checkout
 import { ecommerceService } from './ecommerce-service.js';
 import { CONFIG } from './config.js';
-import { mercadoPagoCheckoutPro } from './mercadopago-checkout-pro.js'; // ✅ Sistema Checkout Pro
+import { MercadoPagoManager } from './mercadopago-real.js'; // ✅ Sistema REAL de pagamentos
 import { emailService } from './email-service.js';
 
-class CheckoutManager {    constructor() {
+class CheckoutManager {
+    constructor() {
         this.checkoutData = JSON.parse(localStorage.getItem('checkout-data')) || null;
         this.enderecoCompleto = false;
-        this.mercadoPago = mercadoPagoCheckoutPro;
+        this.mercadoPago = new MercadoPagoManager();
         this.init();
-    }init() {
+    }    init() {
         if (!this.checkoutData || this.checkoutData.items.length === 0) {
             this.redirecionarParaCarrinho();
             return;
@@ -458,47 +459,45 @@ class CheckoutManager {    constructor() {
             console.log('Forma de pagamento:', formaPagamento);
             
             let result;            if (formaPagamento === 'online') {
-                // Usar Checkout Pro do Mercado Pago
+                // Verificar qual método de pagamento online foi selecionado
+                const methodInput = document.querySelector('input[name="payment-method"]');
+                console.log('Input payment-method encontrado:', methodInput);
+                console.log('Valor do payment-method:', methodInput?.value);
+                
+                // Se não há método selecionado, definir PIX como padrão
+                if (!methodInput?.value) {
+                    console.log('⚠️ Nenhum método selecionado, usando PIX como padrão');
+                    if (methodInput) {
+                        methodInput.value = 'pix';
+                    }
+                }
+                
+                // Processar pagamento online via Mercado Pago
                 try {
-                    console.log('🚀 Iniciando pagamento com Checkout Pro...');
+                    const paymentResult = await this.mercadoPago.processPayment(formData, pedidoData);
                     
-                    // Preparar dados para o Checkout Pro
-                    const checkoutData = {
-                        orderId: `ORDER_${Date.now()}`,
-                        items: this.checkoutData.items,
-                        dadosCliente: {
-                            nome: formData.get('nome'),
-                            email: formData.get('email'),
-                            telefone: formData.get('telefone'),
-                            cpf: formData.get('cpf')
-                        },
-                        endereco: {
-                            cep: formData.get('cep'),
-                            rua: formData.get('endereco'),
-                            numero: formData.get('numero'),
-                            complemento: formData.get('complemento'),
-                            bairro: formData.get('bairro'),
-                            cidade: formData.get('cidade'),
-                            estado: formData.get('estado')
-                        },
-                        entrega: {
-                            metodo: 'entrega'
-                        },
-                        subtotal: this.checkoutData.subtotal,
-                        desconto: this.checkoutData.desconto || 0,
-                        total: this.checkoutData.total
-                    };
-                    
-                    // Processar com Checkout Pro
-                    await this.mercadoPago.processCheckoutPayment(checkoutData);
-                    
-                    // A partir daqui, o usuário será redirecionado para o Checkout Pro
-                    // O retorno será tratado pela própria classe MercadoPagoCheckoutPro
-                    return;
-                    
+                    console.log('Resultado do pagamento:', paymentResult);
+                      if (paymentResult.success && paymentResult.payment_method === 'credit_card') {
+                        // Cartão aprovado imediatamente
+                        pedidoData.payment = {
+                            method: 'online',
+                            provider: 'mercadopago',
+                            status: 'approved',
+                            payment_method: paymentResult.payment_method,
+                            external_reference: paymentResult.external_reference,
+                            card_token: paymentResult.card_token,
+                            installments: paymentResult.installments
+                        };
+                    } else if (paymentResult.payment_method === 'pix') {
+                        // PIX precisa ser pago antes de criar pedido
+                        this.mostrarInterfacePIX(paymentResult, pedidoData);
+                        return; // Para execução aqui
+                    } else {
+                        throw new Error(paymentResult.message || 'Falha no processamento do pagamento online');
+                    }
                 } catch (paymentError) {
-                    console.error('❌ Erro no Checkout Pro:', paymentError);
-                    this.mostrarNotificacao('Erro ao abrir sistema de pagamentos. Tente novamente.', 'error');
+                    console.error('Erro no pagamento online:', paymentError);
+                    this.mostrarNotificacao('Erro no pagamento online. Tente novamente.', 'error');
                     return;
                 }
             } else {
@@ -692,17 +691,168 @@ class CheckoutManager {    constructor() {
         modal.style.display = 'block';
     }
 
-    // Mostrar interface PIX para pagamento    // FUNÇÃO DEPRECIADA - Não mais necessária com Checkout Pro
-    // mostrarInterfacePIX(paymentResult, pedidoData) {
-    //     // Esta função foi substituída pelo Checkout Pro do Mercado Pago
-    //     // O Checkout Pro gerencia toda a interface de pagamento PIX
-    //     console.log('⚠️ Função depreciada - usando Checkout Pro');
-    // }    // FUNÇÃO DEPRECIADA - Não mais necessária com Checkout Pro
-    // async verificarPagamentoPIX(reference) {
-    //     // Esta função foi substituída pelo Checkout Pro do Mercado Pago
-    //     // O Checkout Pro gerencia toda a verificação de pagamento
-    //     console.log('⚠️ Função depreciada - usando Checkout Pro');
-    // }
+    // Mostrar interface PIX para pagamento
+    mostrarInterfacePIX(paymentResult, pedidoData) {
+        // Criar modal PIX personalizado
+        const pixModal = document.createElement('div');
+        pixModal.id = 'modal-pix-payment';
+        pixModal.className = 'modal';
+        pixModal.style.display = 'block';
+        pixModal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header" style="background: #ff9500; color: white; padding: 20px; text-align: center;">
+                    <h2><i class="fas fa-qrcode"></i> Pagamento PIX</h2>
+                    <p style="margin: 5px 0 0 0;">Complete o pagamento para finalizar seu pedido</p>
+                </div>
+                
+                <div class="modal-body" style="padding: 30px;">
+                    <div class="alert alert-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong>⚠️ Importante:</strong> Seu pedido será criado apenas após a confirmação do pagamento PIX.
+                    </div>
+                    
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="background: #f8f9fa; padding: 30px; border-radius: 12px; border: 2px dashed #28a745;">
+                            <i class="fas fa-qrcode" style="font-size: 64px; color: #28a745; margin-bottom: 15px;"></i>
+                            <p style="margin: 15px 0; font-weight: bold; font-size: 18px;">QR Code PIX</p>
+                            <p style="color: #666; margin-bottom: 20px;">
+                                Valor: <strong>R$ ${parseFloat(pedidoData.total || 0).toFixed(2)}</strong>
+                            </p>                            <div style="background: white; padding: 20px; border-radius: 8px; margin: 15px 0;">
+                                <img src="${paymentResult.qr_code_base64 || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMDAiIHk9Ijg1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTJweCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q09ESUdPPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTZweCIgZmlsbD0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UElYPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTJweCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UkVBTDwvdGV4dD48L3N2Zz4='}" 
+                                     alt="QR Code PIX" 
+                                     style="max-width: 180px; height: auto; border: 2px solid #28a745; border-radius: 8px;">
+                            </div>
+                            
+                            <!-- Código PIX Copia e Cola -->
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #dee2e6;">
+                                <h5 style="margin-bottom: 10px; color: #495057;">
+                                    <i class="fas fa-copy"></i> Código PIX Copia e Cola
+                                </h5>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <textarea readonly style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; resize: none; font-family: monospace; font-size: 11px; height: 80px; line-height: 1.2;">${paymentResult.qr_code || 'Código PIX não disponível'}</textarea>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(() => { this.innerHTML = '<i class=\\'fas fa-check\\'></i> Copiado!'; setTimeout(() => this.innerHTML = '<i class=\\'fas fa-copy\\'></i> Copiar', 2000); })" style="white-space: nowrap;">
+                                        <i class="fas fa-copy"></i> Copiar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pix-instructions" style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h5 style="color: #0056b3; margin-bottom: 15px;">
+                            <i class="fas fa-mobile-alt"></i> Como pagar via PIX:
+                        </h5>
+                        <ol style="margin: 0; padding-left: 25px; line-height: 1.6;">
+                            <li>Abra o app do seu banco ou carteira digital</li>
+                            <li>Escolha a opção <strong>PIX</strong></li>
+                            <li>Selecione <strong>"Ler QR Code"</strong></li>
+                            <li>Escaneie o código acima</li>
+                            <li>Confirme os dados e o valor</li>
+                            <li>Finalize o pagamento</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="alert alert-info" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <p style="margin: 0; text-align: center;">
+                            <i class="fas fa-clock"></i> 
+                            <strong>Tempo para pagamento:</strong> 30 minutos
+                        </p>
+                    </div>
+                </div>
+                  <div class="modal-footer" style="padding: 20px; text-align: center; border-top: 1px solid #dee2e6; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()" style="min-width: 120px;">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="checkoutManager.verificarPagamentoPIX('${paymentResult.external_reference}')" style="min-width: 160px;">
+                        <i class="fas fa-sync-alt"></i> Verificar Pagamento
+                    </button>
+                    <p style="margin: 10px 0 0 0; font-size: 12px; color: #666; width: 100%; text-align: center;">
+                        Aguardando confirmação do pagamento...
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(pixModal);
+        
+        // Armazenar dados do pedido para criar após pagamento
+        this.pendingPixOrder = {
+            paymentResult: paymentResult,
+            pedidoData: pedidoData
+        };
+        
+        console.log('Interface PIX exibida. Aguardando pagamento...');
+    }    // Verificar status do pagamento PIX
+    async verificarPagamentoPIX(reference) {
+        try {
+            console.log('🔍 Verificando pagamento PIX:', reference);
+            
+            // Em produção, isso consultaria a API do MercadoPago
+            // Por enquanto, simular verificação
+            const button = event.target;
+            const originalContent = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            button.disabled = true;
+            
+            // Simular consulta (em produção seria uma API call)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Simular aprovação (80% de chance)
+            const isPaid = Math.random() > 0.2;
+            
+            if (isPaid) {
+                // Pagamento aprovado - criar pedido
+                if (this.pendingPixOrder) {
+                    const pedidoData = this.pendingPixOrder.pedidoData;
+                    pedidoData.payment = {
+                        method: 'online',
+                        provider: 'mercadopago',
+                        status: 'approved',
+                        payment_method: 'pix',
+                        external_reference: reference,
+                        pix_transaction_id: 'PIX_' + Date.now()
+                    };
+                    
+                    const result = await ecommerceService.createOrder(pedidoData);
+                    
+                    if (result.success) {
+                        // Remover modal PIX
+                        document.getElementById('modal-pix-payment')?.remove();
+                        
+                        // Limpar carrinho
+                        localStorage.removeItem('carrinho');
+                        localStorage.removeItem('checkout-data');
+                        
+                        // Mostrar sucesso
+                        this.mostrarModalConfirmacao(result.data, pedidoData.payment);
+                        
+                        // Enviar email
+                        await emailService.sendOrderConfirmation(pedidoData, result.data);
+                        
+                        console.log('✅ Pagamento PIX confirmado e pedido criado!');
+                    } else {
+                        throw new Error('Erro ao criar pedido após pagamento');
+                    }
+                }
+            } else {
+                // Pagamento ainda pendente
+                button.innerHTML = '<i class="fas fa-clock"></i> Ainda pendente';
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                }, 3000);
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao verificar pagamento PIX:', error);
+            this.mostrarNotificacao('Erro ao verificar pagamento: ' + error.message, 'error');
+            
+            // Restaurar botão
+            if (event?.target) {                event.target.innerHTML = '<i class="fas fa-sync-alt"></i> Verificar Pagamento';
+                event.target.disabled = false;
+            }
+        }
+    }
 
     // Função auxiliar para mostrar notificações
 
@@ -748,12 +898,47 @@ class CheckoutManager {    constructor() {
             style: 'currency',
             currency: 'BRL'
         }).format(valor);
-    }    // Configurar abas de pagamento online - Simplificado para Checkout Pro
+    }    // Configurar abas de pagamento online (PIX/Cartão)
     configurarPaymentTabs() {
-        // Com Checkout Pro, não precisamos gerenciar abas manualmente
-        // O MP Checkout Pro gerencia todos os métodos de pagamento
-        console.log('✅ Usando Checkout Pro - gerenciamento de abas não necessário');
-        return;
+        // Se já foi configurado, não fazer novamente
+        if (this.paymentTabsConfigured) return;
+        
+        const tabs = document.querySelectorAll('.payment-tab');
+        const forms = document.querySelectorAll('.payment-form');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remover classe active de todas as abas
+                tabs.forEach(t => t.classList.remove('active'));
+                forms.forEach(f => f.classList.remove('active'));
+                
+                // Adicionar classe active na aba clicada
+                tab.classList.add('active');
+                
+                // Mostrar formulário correspondente
+                const method = tab.dataset.method;
+                const form = document.getElementById(`${method}-form`);
+                if (form) {
+                    form.classList.add('active');
+                }
+                
+                // Atualizar input hidden do método
+                const methodInput = document.querySelector('input[name="payment-method"]');
+                if (methodInput) {
+                    methodInput.value = method;
+                }
+                
+                // Gerenciar campos required baseado no método selecionado
+                this.updateRequiredByMethod(method);
+                
+                console.log('Método de pagamento selecionado:', method);
+            });
+        });
+          // Configurar máscaras dos campos de pagamento
+        this.configurarMascarasPagamento();
+        
+        this.paymentTabsConfigured = true;
+        console.log('✅ Abas de pagamento configuradas');
     }
 
     // Configurar abas de instruções PIX
@@ -891,17 +1076,64 @@ class CheckoutManager {    constructor() {
 
         console.log('Bandeira detectada:', bandeira);
         return bandeira;
-    }    // Função para gerenciar validação - Simplificado para Checkout Pro
+    }
+
+    // Função para gerenciar validação dos campos de pagamento online
     togglePaymentRequiredFields(required) {
-        // Com Checkout Pro, não precisamos validar campos de pagamento específicos
-        // O MP Checkout Pro gerencia toda a validação
-        console.log('✅ Usando Checkout Pro - validação de campos não necessária');
-        return;
-    }    // Atualizar campos required - Simplificado para Checkout Pro
+        const paymentFields = [
+            'cardNumber', 'cardExpirationDate', 'securityCode', 'cardHolderName', // Cartão
+            'pixEmail', 'pixCpf' // PIX
+        ];
+        
+        paymentFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                if (required) {
+                    field.setAttribute('required', 'required');
+                } else {
+                    field.removeAttribute('required');
+                }
+            }
+        });
+        
+        console.log('Campos de pagamento online - required:', required);
+    }
+
+    // Atualizar campos required baseado no método selecionado
     updateRequiredByMethod(method) {
-        // Com Checkout Pro, não precisamos gerenciar campos required de pagamento
-        console.log('✅ Usando Checkout Pro - método:', method);
-        return;
+        // Limpar todos os required primeiro
+        const allPaymentFields = [
+            'cardNumber', 'cardExpirationDate', 'securityCode', 'cardHolderName',
+            'pixEmail', 'pixCpf'
+        ];
+        
+        allPaymentFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.removeAttribute('required');
+            }
+        });
+        
+        // Adicionar required apenas aos campos do método ativo
+        if (method === 'pix') {
+            const pixFields = ['pixEmail', 'pixCpf'];
+            pixFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.setAttribute('required', 'required');
+                }
+            });
+        } else if (method === 'credit-card') {
+            const cardFields = ['cardNumber', 'cardExpirationDate', 'securityCode', 'cardHolderName'];
+            cardFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.setAttribute('required', 'required');
+                }
+            });
+        }
+        
+        console.log('Campos required atualizados para:', method);
     }
 }
 

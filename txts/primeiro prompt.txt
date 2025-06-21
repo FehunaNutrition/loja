@@ -1,0 +1,33 @@
+chat, vou começar a criação do site de uma loja e preciso que você comece fazendo uma estrutura de pastas, o site será para minha loja de suplementos (Fehuna Nutrition) e ficará hospedado no github pages (por ser gratuito) e o banco de dados será firebase, também gratuito. Logo: https://i.ibb.co/fd9nN5fX/fehunanutrition-logo.jpg - os gráficos e estética do site serão feitos com as cores predominantemente preto e branco.
+
+pasta: loja
+index.html
+produto.html
+carrinho.html
+checkout.html
+admin.html
+login.html
+driver-dashboard.html
+loyalty.html
+
+pasta: JS
+app.js
+firebase-config.js
+auth.js
+checkout.js
+admin.js
+driver-dashboard.js
+loyalty.js
+github-rate-limit.js
+
+pasta: styles
+
+index.css
+produto.css
+carrinho.css
+checkout.css
+admin.css
+login.css
+driver-dashboard.css
+loyalty.css
+

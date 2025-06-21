@@ -207,50 +207,82 @@
                                 </div>
                             </div>                            <!-- Pagamento online -->
                             <div id="pagamento-online-details" class="payment-details" style="display: none;">
-                                <h3>Pagamento Online</h3>
+                                <h3>Escolha a forma de pagamento</h3>
                                 
-                                <div class="checkout-pro-info">
-                                    <div class="payment-methods-preview">
-                                        <h4>Métodos de pagamento disponíveis:</h4>
-                                        <div class="payment-icons">
-                                            <div class="payment-method">
-                                                <i class="fas fa-qrcode"></i>
-                                                <span>PIX</span>
-                                            </div>
-                                            <div class="payment-method">
-                                                <i class="fas fa-credit-card"></i>
-                                                <span>Cartão de Crédito</span>
-                                            </div>
-                                            <div class="payment-method">
-                                                <i class="fas fa-mobile-alt"></i>
-                                                <span>Cartão de Débito</span>
-                                            </div>
-                                            <div class="payment-method">
-                                                <i class="fas fa-university"></i>
-                                                <span>Boleto Bancário</span>
-                                            </div>
+                                <!-- Abas de pagamento -->
+                                <div class="payment-tabs">
+                                    <button type="button" class="payment-tab active" data-method="pix">
+                                        <i class="fas fa-qrcode"></i>
+                                        PIX
+                                    </button>
+                                    <button type="button" class="payment-tab" data-method="credit-card">
+                                        <i class="fas fa-credit-card"></i>
+                                        Cartão de Crédito
+                                    </button>
+                                </div>
+                                
+                                <!-- Input hidden para método selecionado -->
+                                <input type="hidden" name="payment-method" value="pix">
+                                
+                                <!-- Formulário PIX -->
+                                <div id="pix-form" class="payment-form active">
+                                    <div class="form-group">
+                                        <label for="pixEmail">E-mail</label>
+                                        <input type="email" id="pixEmail" name="pixEmail" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pixCpf">CPF/CNPJ</label>
+                                        <input type="text" id="pixCpf" name="pixCpf" placeholder="000.000.000-00" required>
+                                    </div>
+                                    <div class="pix-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <p>O QR Code do PIX será gerado após a confirmação do pedido.</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Formulário Cartão de Crédito -->
+                                <div id="credit-card-form" class="payment-form">
+                                    <div class="form-group">
+                                        <label for="cardNumber">Número do Cartão</label>
+                                        <input type="text" id="cardNumber" name="cardNumber" placeholder="0000 0000 0000 0000" required>
+                                        <div class="card-brand-icon"></div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cardExpirationDate">Vencimento</label>
+                                            <input type="text" id="cardExpirationDate" name="cardExpirationDate" placeholder="MM/AA" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="securityCode">CVV</label>
+                                            <input type="text" id="securityCode" name="securityCode" placeholder="000" required>
                                         </div>
                                     </div>
                                     
-                                    <div class="checkout-pro-benefits">
-                                        <div class="benefit">
-                                            <i class="fas fa-shield-alt"></i>
-                                            <span>Pagamento 100% seguro</span>
-                                        </div>
-                                        <div class="benefit">
-                                            <i class="fas fa-clock"></i>
-                                            <span>Confirmação instantânea</span>
-                                        </div>
-                                        <div class="benefit">
-                                            <i class="fas fa-mobile-alt"></i>
-                                            <span>Compatível com dispositivos móveis</span>
-                                        </div>
+                                    <div class="form-group">
+                                        <label for="cardHolderName">Nome no Cartão</label>
+                                        <input type="text" id="cardHolderName" name="cardHolderName" placeholder="Como está no cartão" required>
                                     </div>
                                     
-                                    <div class="checkout-info">
-                                        <p><i class="fas fa-info-circle"></i> Ao finalizar, você será redirecionado para a página de pagamento segura do Mercado Pago.</p>
+                                    <div class="form-group">
+                                        <label for="installments">Parcelamento</label>
+                                        <select id="installments" name="installments">
+                                            <option value="1">1x sem juros</option>
+                                            <option value="2">2x sem juros</option>
+                                            <option value="3">3x sem juros</option>
+                                            <option value="4">4x sem juros</option>
+                                            <option value="5">5x sem juros</option>
+                                            <option value="6">6x sem juros</option>
+                                        </select>
                                     </div>
-                                </div>                            </div>
+                                    
+                                    <div class="security-info">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <p>Seus dados estão protegidos com criptografia SSL.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Observações -->
                         <div class="form-section">
