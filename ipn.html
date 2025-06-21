@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPN - Fehuna Nutrition</title>
+</head>
+<body>
+    <h1>IPN Endpoint</h1>
+    <p>Este endpoint é usado para receber notificações IPN do Mercado Pago.</p>
+    
+    <script>
+        // IPN (Instant Payment Notification) para Mercado Pago
+        
+        // Processar parâmetros da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const topic = urlParams.get('topic');
+        const id = urlParams.get('id');
+        
+        if (topic && id) {
+            console.log('IPN recebido:', {
+                topic: topic,
+                id: id,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Processar diferentes tipos de notificação
+            switch (topic) {
+                case 'payment':
+                    processPaymentIPN(id);
+                    break;
+                case 'merchant_order':
+                    processMerchantOrderIPN(id);
+                    break;
+                default:
+                    console.log('Tipo de notificação IPN não reconhecido:', topic);
+            }
+        } else {
+            // Endpoint de saúde
+            document.body.innerHTML += '<p>IPN endpoint ativo e funcionando</p>';
+            console.log('IPN endpoint verificado');
+        }
+        
+        async function processPaymentIPN(paymentId) {
+            try {
+                console.log('Processando IPN de pagamento:', paymentId);
+                
+                // Em produção, você faria uma chamada para a API do MP para obter detalhes do pagamento
+                // const paymentDetails = await getPaymentDetails(paymentId);
+                
+                // Simular dados do pagamento
+                const paymentDetails = {
+                    id: paymentId,
+                    status: 'approved',
+                    status_detail: 'accredited',
+                    operation_type: 'regular_payment',
+                    date_approved: new Date().toISOString(),
+                    transaction_amount: 100.00,
+                    external_reference: 'ORDER_' + Date.now()
+                };
+                
+                console.log('Detalhes do pagamento IPN:', paymentDetails);
+                
+                // Atualizar status do pedido no Firebase
+                await updateOrderStatus(paymentDetails);
+                
+                document.body.innerHTML += '<p>IPN de pagamento processado com sucesso</p>';
+                
+            } catch (error) {
+                console.error('Erro ao processar IPN de pagamento:', error);
+                document.body.innerHTML += '<p>Erro ao processar IPN de pagamento</p>';
+            }
+        }
+        
+        async function processMerchantOrderIPN(orderId) {
+            try {
+                console.log('Processando IPN de merchant order:', orderId);
+                
+                // Em produção, obter detalhes da ordem
+                const orderDetails = {
+                    id: orderId,
+                    status: 'paid',
+                    external_reference: 'ORDER_' + Date.now(),
+                    payments: []
+                };
+                
+                console.log('Detalhes da ordem IPN:', orderDetails);
+                
+                document.body.innerHTML += '<p>IPN de merchant order processado com sucesso</p>';
+                
+            } catch (error) {
+                console.error('Erro ao processar IPN de merchant order:', error);
+                document.body.innerHTML += '<p>Erro ao processar IPN de merchant order</p>';
+            }
+        }
+        
+        async function updateOrderStatus(paymentDetails) {
+            try {
+                // Em produção, isso seria uma chamada para seu backend
+                console.log('Atualizando status do pedido:', paymentDetails.external_reference);
+                
+                // Simular atualização no Firebase
+                const orderUpdate = {
+                    orderId: paymentDetails.external_reference,
+                    paymentStatus: paymentDetails.status,
+                    paymentId: paymentDetails.id,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                console.log('Pedido atualizado:', orderUpdate);
+                
+                // Em produção, você também enviaria um email de confirmação para o cliente
+                // await sendConfirmationEmail(orderUpdate);
+                
+            } catch (error) {
+                console.error('Erro ao atualizar status do pedido:', error);
+                throw error;
+            }
+        }
+        
+        // Log de debug
+        console.log('IPN endpoint inicializado');
+    </script>
+</body>
+</html>

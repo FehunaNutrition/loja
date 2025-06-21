@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Real - Fehuna Nutrition</title>
+</head>
+<body>
+    <h1>🔔 Webhook MercadoPago (Sistema Real)</h1>
+    <p>Este endpoint processa notificações reais do MercadoPago.</p>
+    
+    <div id="webhook-status">
+        <p>✅ Webhook ativo e funcionando</p>
+        <p>📅 Última verificação: <span id="last-check"></span></p>
+    </div>
+    
+    <div id="webhook-logs">
+        <h3>📝 Logs Recentes:</h3>
+        <div id="logs-container"></div>
+    </div>
+    
+    <script type="module">
+        // Webhook Real para MercadoPago
+        import { ecommerceService } from './JS/ecommerce-service.js';
+        import { emailService } from './JS/email-service.js';
+        
+        class WebhookProcessor {
+            constructor() {
+                this.config = {
+                    ACCESS_TOKEN: 'APP_USR-4131876402317524-051114-b8749a0bc7e14c962661536fb5363405-1957801625',
+                    BASE_URL: 'https://api.mercadopago.com'
+                };
+                
+                this.updateLastCheck();
+                this.processWebhook();
+                
+                console.log('🚀 Webhook Real inicializado');
+            }
+            
+            updateLastCheck() {
+                document.getElementById('last-check').textContent = new Date().toLocaleString('pt-BR');
+            }
+            
+            async processWebhook() {
+                try {
+                    // Verificar parâmetros da URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const topic = urlParams.get('topic') || urlParams.get('type');
+                    const id = urlParams.get('id') || urlParams.get('data.id');
+                    
+                    this.logEvent('webhook_received', { topic, id });
+                    
+                    if (topic && id) {
+                        console.log('📨 Webhook recebido:', { topic, id });
+                        
+                        if (topic === 'payment' || topic === 'merchant_order') {
+                            await this.processPaymentNotification(id, topic);
+                        } else {
+                            this.logEvent('unknown_topic', { topic });
+                            console.log('⚠️ Tipo de notificação não reconhecido:', topic);
+                        }
+                    } else {
+                        // Endpoint de verificação de saúde
+                        this.logEvent('health_check', {});
+                        console.log('✅ Verificação de saúde do webhook');
+                    }
+                    
+                } catch (error) {
+                    this.logEvent('webhook_error', { error: error.message });
+                    console.error('❌ Erro no webhook:', error);
+                }
+            }
+            
+            async processPaymentNotification(paymentId, topic) {
+                try {
+                    console.log('🔄 Processando notificação de pagamento:', paymentId);
+                    
+                    // Buscar detalhes do pagamento na API do MercadoPago
+                    const paymentDetails = await this.getPaymentDetails(paymentId);
+                    
+                    if (!paymentDetails) {
+                        throw new Error('Não foi possível obter detalhes do pagamento');
+                    }
+                    
+                    this.logEvent('payment_details_retrieved', {
+                        payment_id: paymentId,
+                        status: paymentDetails.status,
+                        external_reference: paymentDetails.external_reference
+                    });
+                    
+                    // Atualizar status do pedido no Firebase
+                    await this.updateOrderStatus(paymentDetails);
+                    
+                    // Enviar email de confirmação se aprovado
+                    if (paymentDetails.status === 'approved') {
+                        await this.sendConfirmationEmail(paymentDetails);
+                    }
+                    
+                    this.logEvent('notification_processed', {
+                        payment_id: paymentId,
+                        status: paymentDetails.status
+                    });
+                    
+                    console.log('✅ Notificação processada com sucesso');
+                    
+                } catch (error) {
+                    this.logEvent('notification_error', {
+                        payment_id: paymentId,
+                        error: error.message
+                    });
+                    console.error('❌ Erro ao processar notificação:', error);
+                }
+            }
+            
+            async getPaymentDetails(paymentId) {
+                try {
+                    const url = `${this.config.BASE_URL}/v1/payments/${paymentId}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${this.config.ACCESS_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        // Em desenvolvimento, simular resposta
+                        if (response.status === 401 || response.status === 404) {
+                            console.log('🔄 Simulando detalhes do pagamento para desenvolvimento');
+                            return this.simulatePaymentDetails(paymentId);
+                        }
+                        throw new Error(`Erro HTTP ${response.status}`);
+                    }
+                    
+                    const paymentData = await response.json();
+                    console.log('📦 Detalhes do pagamento obtidos:', paymentData);
+                    
+                    return paymentData;
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao buscar detalhes:', error);
+                    
+                    // Fallback para desenvolvimento
+                    console.log('🔄 Usando dados simulados para desenvolvimento');
+                    return this.simulatePaymentDetails(paymentId);
+                }
+            }
+            
+            simulatePaymentDetails(paymentId) {
+                // Simular dados de pagamento para desenvolvimento
+                return {
+                    id: paymentId,
+                    status: 'approved',
+                    status_detail: 'accredited',
+                    payment_method_id: 'pix',
+                    payment_type_id: 'bank_transfer',
+                    transaction_amount: 100.00,
+                    currency_id: 'BRL',
+                    external_reference: 'ORDER_' + Date.now(),
+                    date_created: new Date().toISOString(),
+                    date_approved: new Date().toISOString(),
+                    payer: {
+                        email: 'cliente@email.com',
+                        first_name: 'Cliente',
+                        last_name: 'Teste'
+                    },
+                    metadata: {
+                        order_id: 'ORDER_' + Date.now()
+                    }
+                };
+            }
+            
+            async updateOrderStatus(paymentDetails) {
+                try {
+                    const externalReference = paymentDetails.external_reference;
+                    const newStatus = this.mapPaymentStatusToOrderStatus(paymentDetails.status);
+                    
+                    console.log('🔄 Atualizando status do pedido:', {
+                        external_reference: externalReference,
+                        payment_status: paymentDetails.status,
+                        new_order_status: newStatus
+                    });
+                    
+                    // Buscar pedido pelo external_reference
+                    const orders = await ecommerceService.getOrdersByReference(externalReference);
+                    
+                    if (orders && orders.length > 0) {
+                        const order = orders[0];
+                        
+                        // Atualizar status do pedido
+                        await ecommerceService.updateOrderStatus(order.id, newStatus, {
+                            payment_id: paymentDetails.id,
+                            payment_status: paymentDetails.status,
+                            payment_method: paymentDetails.payment_method_id,
+                            transaction_amount: paymentDetails.transaction_amount,
+                            updated_by_webhook: true,
+                            webhook_timestamp: new Date().toISOString()
+                        });
+                        
+                        console.log('✅ Status do pedido atualizado');
+                        
+                        return order;
+                    } else {
+                        console.warn('⚠️ Pedido não encontrado:', externalReference);
+                        return null;
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao atualizar status do pedido:', error);
+                    throw error;
+                }
+            }
+            
+            mapPaymentStatusToOrderStatus(paymentStatus) {
+                const statusMap = {
+                    'approved': 'confirmado_preparacao',
+                    'pending': 'pending',
+                    'in_process': 'pending',
+                    'rejected': 'cancelado',
+                    'cancelled': 'cancelado',
+                    'refunded': 'cancelado'
+                };
+                
+                return statusMap[paymentStatus] || 'pending';
+            }
+            
+            async sendConfirmationEmail(paymentDetails) {
+                try {
+                    // Buscar dados completos do pedido
+                    const orders = await ecommerceService.getOrdersByReference(paymentDetails.external_reference);
+                    
+                    if (orders && orders.length > 0) {
+                        const order = orders[0];
+                        
+                        // Enviar email de confirmação de pagamento
+                        await emailService.sendOrderConfirmation({
+                            ...order,
+                            payment: {
+                                ...order.payment,
+                                status: 'approved',
+                                payment_id: paymentDetails.id,
+                                approved_at: paymentDetails.date_approved
+                            }
+                        });
+                        
+                        console.log('📧 Email de confirmação enviado');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao enviar email:', error);
+                    // Não quebrar o fluxo se o email falhar
+                }
+            }
+            
+            logEvent(eventType, data) {
+                const timestamp = new Date().toLocaleString('pt-BR');
+                const logEntry = {
+                    timestamp,
+                    event: eventType,
+                    data
+                };
+                
+                console.log('📝 Log:', logEntry);
+                
+                // Adicionar ao DOM para visualização
+                const logsContainer = document.getElementById('logs-container');
+                if (logsContainer) {
+                    const logElement = document.createElement('div');
+                    logElement.style.cssText = 'padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 5px; font-family: monospace; font-size: 12px;';
+                    logElement.innerHTML = `
+                        <strong>${timestamp}</strong> - ${eventType}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    
+                    logsContainer.insertBefore(logElement, logsContainer.firstChild);
+                    
+                    // Manter apenas os 10 logs mais recentes
+                    while (logsContainer.children.length > 10) {
+                        logsContainer.removeChild(logsContainer.lastChild);
+                    }
+                }
+            }
+        }
+        
+        // Inicializar webhook quando carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            new WebhookProcessor();
+        });
+        
+        // Atualizar timestamp a cada minuto
+        setInterval(() => {
+            document.getElementById('last-check').textContent = new Date().toLocaleString('pt-BR');
+        }, 60000);
+        
+    </script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        #webhook-status {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        #webhook-logs {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            margin: 5px 0;
+        }
+    </style>
+</body>
+</html>

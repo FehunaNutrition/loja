@@ -982,368 +982,7 @@ class AdminPanel {
             document.getElementById('total-pedidos').textContent = stats.todayOrders;
             document.getElementById('faturamento-dia').textContent = this.formatCurrency(stats.todayRevenue);
             document.getElementById('novos-clientes').textContent = stats.newClients;
-            document.getElementById('avaliacao-media').textContent = stats.averageRating.toFixed(1);
-            
-        } catch (error) {
-            console.error('Erro ao carregar dados do dashboard:', error);
-            this.showNotification('Erro ao carregar estatísticas', 'error');
-        }
-    }
-
-    // ========== CARREGAMENTO DE CLIENTES ==========
-    
-    async loadClients() {
-        try {
-            this.clients = await ecommerceService.getClients();
-            this.displayClients();
-        } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
-            this.showNotification('Erro ao carregar clientes', 'error');
-        }
-    }
-
-    displayClients() {
-        const container = document.getElementById('clients-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.clients.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum cliente encontrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'admin-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th>Data Cadastro</th>
-                    <th>Pedidos</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="clients-tbody"></tbody>
-        `;
-
-        container.appendChild(table);
-
-        const tbody = table.querySelector('#clients-tbody');
-        this.clients.forEach(client => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${client.name || 'Não informado'}</td>
-                <td>${client.email}</td>
-                <td>${client.phone || 'Não informado'}</td>
-                <td>${this.formatDate(client.createdAt)}</td>
-                <td>0</td> <!-- TODO: Calcular número de pedidos -->
-                <td class="actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.viewClientDetails('${client.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.editClient('${client.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    viewClientDetails(clientId) {
-        // Implementar modal de detalhes do cliente
-        this.showNotification('Modal de detalhes do cliente em desenvolvimento', 'info');
-    }
-
-    editClient(clientId) {
-        // Implementar edição de cliente
-        this.showNotification('Edição de cliente em desenvolvimento', 'info');
-    }
-
-    // ========== GESTÃO DE PRODUTOS ==========
-    
-    // Exibir produtos
-    displayProducts() {
-        const container = document.getElementById('products-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.products.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum produto encontrado.</p>';
-            return;
-        }
-
-        const grid = document.createElement('div');
-        grid.className = 'products-grid';
-
-        this.products.forEach(product => {
-            const productCard = document.createElement('div');
-            productCard.className = 'product-card';
-            productCard.innerHTML = `
-                <div class="product-image">
-                    <img src="${product.images?.[0] || 'https://via.placeholder.com/200'}" alt="${product.name}">
-                </div>
-                <div class="product-info">
-                    <h4>${product.name}</h4>
-                    <p class="product-category">${product.category}</p>
-                    <p class="product-price">${this.formatCurrency(product.price)}</p>
-                    <p class="product-stock">Estoque: ${product.stock || 0}</p>
-                    <div class="product-status">
-                        <span class="status-badge ${product.status}">${product.status === 'active' ? 'Ativo' : 'Inativo'}</span>
-                    </div>
-                </div>
-                <div class="product-actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.editProduct('${product.id}')">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.toggleProductStatus('${product.id}')">
-                        <i class="fas fa-power-off"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="adminPanel.deleteProduct('${product.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            grid.appendChild(productCard);
-        });
-
-        container.appendChild(grid);
-    }
-
-    // Adicionar produto
-    async addProduct(productData) {
-        try {
-            const result = await ecommerceService.addProduct(productData);
-            if (result.success) {
-                this.showNotification('Produto adicionado com sucesso!', 'success');
-                this.closeModal('product-modal');
-            } else {
-                this.showNotification('Erro ao adicionar produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao adicionar produto:', error);
-            this.showNotification('Erro ao adicionar produto', 'error');
-        }
-    }
-
-    // Editar produto
-    async editProduct(productId) {
-        try {
-            const product = await ecommerceService.getProduct(productId);
-            if (!product) {
-                this.showNotification('Produto não encontrado', 'error');
-                return;
-            }
-
-            this.showProductModal(product);
-        } catch (error) {
-            console.error('Erro ao carregar produto:', error);
-            this.showNotification('Erro ao carregar produto', 'error');
-        }
-    }
-
-    // Atualizar produto
-    async updateProduct(productId, productData) {
-        try {
-            const result = await ecommerceService.updateProduct(productId, productData);
-            if (result.success) {
-                this.showNotification('Produto atualizado com sucesso!', 'success');
-                this.closeModal('product-modal');
-            } else {
-                this.showNotification('Erro ao atualizar produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar produto:', error);
-            this.showNotification('Erro ao atualizar produto', 'error');
-        }
-    }
-
-    // Deletar produto
-    async deleteProduct(productId) {
-        if (!confirm('Tem certeza que deseja deletar este produto?')) return;
-
-        try {
-            const result = await ecommerceService.deleteProduct(productId);
-            if (result.success) {
-                this.showNotification('Produto deletado com sucesso!', 'success');
-            } else {
-                this.showNotification('Erro ao deletar produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao deletar produto:', error);
-            this.showNotification('Erro ao deletar produto', 'error');
-        }
-    }
-
-    // Alternar status do produto
-    async toggleProductStatus(productId) {
-        try {
-            const product = this.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const newStatus = product.status === 'active' ? 'inactive' : 'active';
-            const result = await ecommerceService.updateProduct(productId, { status: newStatus });
-
-            if (result.success) {
-                this.showNotification(`Produto ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
-                await this.loadProducts(); // Recarregar lista
-            } else {
-                this.showNotification('Erro ao alterar status do produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            this.showNotification('Erro ao alterar status do produto', 'error');
-        }
-    }
-
-    // ========== GESTÃO DE CLIENTES ==========
-    
-    // Exibir clientes
-    displayClients() {
-        const container = document.getElementById('clients-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.clients.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum cliente encontrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'admin-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th>Pedidos</th>
-                    <th>Total Gasto</th>
-                    <th>Nível</th>
-                    <th>Data Cadastro</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="clients-tbody"></tbody>
-        `;
-
-        container.appendChild(table);
-
-        const tbody = table.querySelector('#clients-tbody');
-        this.clients.forEach(client => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${client.name || 'Não informado'}</td>
-                <td>${client.email}</td>
-                <td>${client.phone || 'Não informado'}</td>
-                <td>${client.totalOrders || 0}</td>
-                <td>${this.formatCurrency(client.totalSpent || 0)}</td>
-                <td><span class="loyalty-badge ${client.loyaltyLevel}">${client.loyaltyLevel || 'BRONZE'}</span></td>
-                <td>${this.formatDate(client.createdAt)}</td>
-                <td class="actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.viewClientDetails('${client.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.editClient('${client.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    // Carregar entregadores
-    async loadDrivers() {
-        // Implementar carregamento de entregadores
-        console.log('Carregando entregadores...');
-    }
-
-    // Carregar cupons
-    async loadCoupons() {
-        // Implementar carregamento de cupons
-        console.log('Carregando cupons...');
-    }
-
-    // Carregar relatórios
-    async loadReports() {
-        // Implementar carregamento de relatórios
-        console.log('Carregando relatórios...');
-    }
-
-    // Carregar configurações
-    async loadSettings() {
-        // Implementar carregamento de configurações
-        console.log('Carregando configurações...');
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PRODUTOS ==========
-    
-    editProduct(productId) {
-        this.showEditProductModal(productId);
-    }
-
-    async toggleProductStatus(productId) {
-        try {
-            const product = this.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const newStatus = product.status === 'active' ? 'inactive' : 'active';
-            const result = await ecommerceService.updateProduct(productId, { status: newStatus });
-
-            if (result.success) {
-                this.showNotification(`Produto ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
-                await this.loadProducts();
-            } else {
-                this.showNotification('Erro ao alterar status do produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            this.showNotification('Erro ao alterar status do produto', 'error');
-        }
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PEDIDOS ==========
-    
-    async confirmOrder(orderId) {
-        try {
-            const result = await ecommerceService.updateOrderStatus(orderId, 'confirmed');
-            if (result.success) {
-                this.showNotification('Pedido confirmado com sucesso!', 'success');
-                await this.loadOrders();
-            } else {
-                this.showNotification('Erro ao confirmar pedido', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao confirmar pedido:', error);
-            this.showNotification('Erro ao confirmar pedido', 'error');
-        }
-    }
-
-    updateOrdersCount() {
-        const badge = document.getElementById('pedidos-count');
-        if (badge) {
-            const pendingOrders = this.orders.filter(order => order.status === 'pending').length;
-            badge.textContent = pendingOrders;
-        }
-    }
-
-    // ========== CARREGAMENTO DO DASHBOARD ==========
-    
-    async loadDashboardData() {
-        try {
-            const stats = await ecommerceService.getDashboardStats();
-            
-            // Atualizar estatísticas na UI
-            document.getElementById('total-pedidos').textContent = stats.todayOrders;
-            document.getElementById('faturamento-dia').textContent = this.formatCurrency(stats.todayRevenue);
-            document.getElementById('novos-clientes').textContent = stats.newClients;
-            document.getElementById('avaliacao-media').textContent = stats.averageRating.toFixed(1);
+            document.getElementById('avaliacao-media').textContent = (stats.averageRating || 0).toFixed(1);
             
         } catch (error) {
             console.error('Erro ao carregar dados do dashboard:', error);
@@ -1436,614 +1075,14 @@ class AdminPanel {
     async loadSettings() {
         // Implementar carregamento de configurações
         console.log('Carregando configurações...');
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PRODUTOS ==========
-    
-    editProduct(productId) {
-        this.showEditProductModal(productId);
-    }
-
-    async toggleProductStatus(productId) {
-        try {
-            const product = this.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const newStatus = product.status === 'active' ? 'inactive' : 'active';
-            const result = await ecommerceService.updateProduct(productId, { status: newStatus });
-
-            if (result.success) {
-                this.showNotification(`Produto ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
-                await this.loadProducts();
-            } else {
-                this.showNotification('Erro ao alterar status do produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            this.showNotification('Erro ao alterar status do produto', 'error');
-        }
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PEDIDOS ==========
-    
-    async confirmOrder(orderId) {
-        try {
-            const result = await ecommerceService.updateOrderStatus(orderId, 'confirmed');
-            if (result.success) {
-                this.showNotification('Pedido confirmado com sucesso!', 'success');
-                await this.loadOrders();
-            } else {
-                this.showNotification('Erro ao confirmar pedido', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao confirmar pedido:', error);
-            this.showNotification('Erro ao confirmar pedido', 'error');
-        }
-    }
-
-    updateOrdersCount() {
-        const badge = document.getElementById('pedidos-count');
-        if (badge) {
-            const pendingOrders = this.orders.filter(order => order.status === 'pending').length;
-            badge.textContent = pendingOrders;
-        }
-    }
-
-    // ========== CARREGAMENTO DO DASHBOARD ==========
-    
-    async loadDashboardData() {
-        try {
-            const stats = await ecommerceService.getDashboardStats();
-            
-            // Atualizar estatísticas na UI
-            document.getElementById('total-pedidos').textContent = stats.todayOrders;
-            document.getElementById('faturamento-dia').textContent = this.formatCurrency(stats.todayRevenue);
-            document.getElementById('novos-clientes').textContent = stats.newClients;
-            document.getElementById('avaliacao-media').textContent = stats.averageRating.toFixed(1);
-            
-        } catch (error) {
-            console.error('Erro ao carregar dados do dashboard:', error);
-            this.showNotification('Erro ao carregar estatísticas', 'error');
-        }
-    }
-
-    // ========== CARREGAMENTO DE CLIENTES ==========
-    
-    async loadClients() {
-        try {
-            this.clients = await ecommerceService.getClients();
-            this.displayClients();
-        } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
-            this.showNotification('Erro ao carregar clientes', 'error');
-        }
-    }
-
-    displayClients() {
-        const container = document.getElementById('clients-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.clients.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum cliente encontrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'admin-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th>Data Cadastro</th>
-                    <th>Pedidos</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="clients-tbody"></tbody>
-        `;
-
-        container.appendChild(table);
-
-        const tbody = table.querySelector('#clients-tbody');
-        this.clients.forEach(client => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${client.name || 'Não informado'}</td>
-                <td>${client.email}</td>
-                <td>${client.phone || 'Não informado'}</td>
-                <td>${this.formatDate(client.createdAt)}</td>
-                <td>0</td> <!-- TODO: Calcular número de pedidos -->
-                <td class="actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.viewClientDetails('${client.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.editClient('${client.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    // Carregar entregadores
-    async loadDrivers() {
-        // Implementar carregamento de entregadores
-        console.log('Carregando entregadores...');
-    }
-
-    // Carregar cupons
-    async loadCoupons() {
-        // Implementar carregamento de cupons
-        console.log('Carregando cupons...');
-    }
-
-    // Carregar relatórios
-    async loadReports() {
-        // Implementar carregamento de relatórios
-        console.log('Carregando relatórios...');
-    }
-
-    // Carregar configurações
-    async loadSettings() {
-        // Implementar carregamento de configurações
-        console.log('Carregando configurações...');
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PRODUTOS ==========
-    
-    editProduct(productId) {
-        this.showEditProductModal(productId);
-    }
-
-    async toggleProductStatus(productId) {
-        try {
-            const product = this.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const newStatus = product.status === 'active' ? 'inactive' : 'active';
-            const result = await ecommerceService.updateProduct(productId, { status: newStatus });
-
-            if (result.success) {
-                this.showNotification(`Produto ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
-                await this.loadProducts();
-            } else {
-                this.showNotification('Erro ao alterar status do produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            this.showNotification('Erro ao alterar status do produto', 'error');
-        }
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PEDIDOS ==========
-    
-    async confirmOrder(orderId) {
-        try {
-            const result = await ecommerceService.updateOrderStatus(orderId, 'confirmed');
-            if (result.success) {
-                this.showNotification('Pedido confirmado com sucesso!', 'success');
-                await this.loadOrders();
-            } else {
-                this.showNotification('Erro ao confirmar pedido', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao confirmar pedido:', error);
-            this.showNotification('Erro ao confirmar pedido', 'error');
-        }
-    }
-
-    updateOrdersCount() {
-        const badge = document.getElementById('pedidos-count');
-        if (badge) {
-            const pendingOrders = this.orders.filter(order => order.status === 'pending').length;
-            badge.textContent = pendingOrders;
-        }
-    }
-
-    // ========== CARREGAMENTO DO DASHBOARD ==========
-    
-    async loadDashboardData() {
-        try {
-            const stats = await ecommerceService.getDashboardStats();
-            
-            // Atualizar estatísticas na UI
-            document.getElementById('total-pedidos').textContent = stats.todayOrders;
-            document.getElementById('faturamento-dia').textContent = this.formatCurrency(stats.todayRevenue);
-            document.getElementById('novos-clientes').textContent = stats.newClients;
-            document.getElementById('avaliacao-media').textContent = stats.averageRating.toFixed(1);
-            
-        } catch (error) {
-            console.error('Erro ao carregar dados do dashboard:', error);
-            this.showNotification('Erro ao carregar estatísticas', 'error');
-        }
-    }
-
-    // ========== CARREGAMENTO DE CLIENTES ==========
-    
-    async loadClients() {
-        try {
-            this.clients = await ecommerceService.getClients();
-            this.displayClients();
-        } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
-            this.showNotification('Erro ao carregar clientes', 'error');
-        }
-    }
-
-    displayClients() {
-        const container = document.getElementById('clients-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.clients.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum cliente encontrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'admin-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th>Data Cadastro</th>
-                    <th>Pedidos</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="clients-tbody"></tbody>
-        `;
-
-        container.appendChild(table);
-
-        const tbody = table.querySelector('#clients-tbody');
-        this.clients.forEach(client => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${client.name || 'Não informado'}</td>
-                <td>${client.email}</td>
-                <td>${client.phone || 'Não informado'}</td>
-                <td>${this.formatDate(client.createdAt)}</td>
-                <td>0</td> <!-- TODO: Calcular número de pedidos -->
-                <td class="actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.viewClientDetails('${client.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.editClient('${client.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    // Carregar entregadores
-    async loadDrivers() {
-        // Implementar carregamento de entregadores
-        console.log('Carregando entregadores...');
-    }
-
-    // Carregar cupons
-    async loadCoupons() {
-        // Implementar carregamento de cupons
-        console.log('Carregando cupons...');
-    }
-
-    // Carregar relatórios
-    async loadReports() {
-        // Implementar carregamento de relatórios
-        console.log('Carregando relatórios...');
-    }
-
-    // Carregar configurações
-    async loadSettings() {
-        // Implementar carregamento de configurações
-        console.log('Carregando configurações...');
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PRODUTOS ==========
-    
-    editProduct(productId) {
-        this.showEditProductModal(productId);
-    }
-
-    async toggleProductStatus(productId) {
-        try {
-            const product = this.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const newStatus = product.status === 'active' ? 'inactive' : 'active';
-            const result = await ecommerceService.updateProduct(productId, { status: newStatus });
-
-            if (result.success) {
-                this.showNotification(`Produto ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
-                await this.loadProducts();
-            } else {
-                this.showNotification('Erro ao alterar status do produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            this.showNotification('Erro ao alterar status do produto', 'error');
-        }
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PEDIDOS ==========
-    
-    async confirmOrder(orderId) {
-        try {
-            const result = await ecommerceService.updateOrderStatus(orderId, 'confirmed');
-            if (result.success) {
-                this.showNotification('Pedido confirmado com sucesso!', 'success');
-                await this.loadOrders();
-            } else {
-                this.showNotification('Erro ao confirmar pedido', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao confirmar pedido:', error);
-            this.showNotification('Erro ao confirmar pedido', 'error');
-        }
-    }
-
-    updateOrdersCount() {
-        const badge = document.getElementById('pedidos-count');
-        if (badge) {
-            const pendingOrders = this.orders.filter(order => order.status === 'pending').length;
-            badge.textContent = pendingOrders;
-        }
-    }
-
-    // ========== CARREGAMENTO DO DASHBOARD ==========
-    
-    async loadDashboardData() {
-        try {
-            const stats = await ecommerceService.getDashboardStats();
-            
-            // Atualizar estatísticas na UI
-            document.getElementById('total-pedidos').textContent = stats.todayOrders;
-            document.getElementById('faturamento-dia').textContent = this.formatCurrency(stats.todayRevenue);
-            document.getElementById('novos-clientes').textContent = stats.newClients;
-            document.getElementById('avaliacao-media').textContent = stats.averageRating.toFixed(1);
-            
-        } catch (error) {
-            console.error('Erro ao carregar dados do dashboard:', error);
-            this.showNotification('Erro ao carregar estatísticas', 'error');
-        }
-    }
-
-    // ========== CARREGAMENTO DE CLIENTES ==========
-    
-    async loadClients() {
-        try {
-            this.clients = await ecommerceService.getClients();
-            this.displayClients();
-        } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
-            this.showNotification('Erro ao carregar clientes', 'error');
-        }
-    }
-
-    displayClients() {
-        const container = document.getElementById('clients-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.clients.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum cliente encontrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'admin-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th>Data Cadastro</th>
-                    <th>Pedidos</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="clients-tbody"></tbody>
-        `;
-
-        container.appendChild(table);
-
-        const tbody = table.querySelector('#clients-tbody');
-        this.clients.forEach(client => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${client.name || 'Não informado'}</td>
-                <td>${client.email}</td>
-                <td>${client.phone || 'Não informado'}</td>
-                <td>${this.formatDate(client.createdAt)}</td>
-                <td>0</td> <!-- TODO: Calcular número de pedidos -->
-                <td class="actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.viewClientDetails('${client.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.editClient('${client.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    // Carregar entregadores
-    async loadDrivers() {
-        // Implementar carregamento de entregadores
-        console.log('Carregando entregadores...');
-    }
-
-    // Carregar cupons
-    async loadCoupons() {
-        // Implementar carregamento de cupons
-        console.log('Carregando cupons...');
-    }
-
-    // Carregar relatórios
-    async loadReports() {
-        // Implementar carregamento de relatórios
-        console.log('Carregando relatórios...');
-    }
-
-    // Carregar configurações
-    async loadSettings() {
-        // Implementar carregamento de configurações
-        console.log('Carregando configurações...');
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PRODUTOS ==========
-    
-    editProduct(productId) {
-        this.showEditProductModal(productId);
-    }
-
-    async toggleProductStatus(productId) {
-        try {
-            const product = this.products.find(p => p.id === productId);
-            if (!product) return;
-
-            const newStatus = product.status === 'active' ? 'inactive' : 'active';
-            const result = await ecommerceService.updateProduct(productId, { status: newStatus });
-
-            if (result.success) {
-                this.showNotification(`Produto ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso!`, 'success');
-                await this.loadProducts();
-            } else {
-                this.showNotification('Erro ao alterar status do produto', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            this.showNotification('Erro ao alterar status do produto', 'error');
-        }
-    }
-
-    // ========== MÉTODOS DE AÇÃO DOS PEDIDOS ==========
-    
-    async confirmOrder(orderId) {
-        try {
-            const result = await ecommerceService.updateOrderStatus(orderId, 'confirmed');
-            if (result.success) {
-                this.showNotification('Pedido confirmado com sucesso!', 'success');
-                await this.loadOrders();
-            } else {
-                this.showNotification('Erro ao confirmar pedido', 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao confirmar pedido:', error);
-            this.showNotification('Erro ao confirmar pedido', 'error');
-        }
-    }
-
-    updateOrdersCount() {
-        const badge = document.getElementById('pedidos-count');
-        if (badge) {
-            const pendingOrders = this.orders.filter(order => order.status === 'pending').length;
-            badge.textContent = pendingOrders;
-        }
-    }
-
-    // ========== CARREGAMENTO DO DASHBOARD ==========
-    
-    async loadDashboardData() {
-        try {
-            const stats = await ecommerceService.getDashboardStats();
-            
-            // Atualizar estatísticas na UI
-            document.getElementById('total-pedidos').textContent = stats.todayOrders;
-            document.getElementById('faturamento-dia').textContent = this.formatCurrency(stats.todayRevenue);
-            document.getElementById('novos-clientes').textContent = stats.newClients;
-            document.getElementById('avaliacao-media').textContent = stats.averageRating.toFixed(1);
-            
-        } catch (error) {
-            console.error('Erro ao carregar dados do dashboard:', error);
-            this.showNotification('Erro ao carregar estatísticas', 'error');
-        }
-    }
-
-    // ========== CARREGAMENTO DE CLIENTES ==========
-    
-    async loadClients() {
-        try {
-            this.clients = await ecommerceService.getClients();
-            this.displayClients();
-        } catch (error) {
-            console.error('Erro ao carregar clientes:', error);
-            this.showNotification('Erro ao carregar clientes', 'error');
-        }
-    }
-
-    displayClients() {
-        const container = document.getElementById('clients-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (this.clients.length === 0) {
-            container.innerHTML = '<p class="text-center">Nenhum cliente encontrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'admin-table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th>Data Cadastro</th>
-                    <th>Pedidos</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="clients-tbody"></tbody>
-        `;
-
-        container.appendChild(table);
-
-        const tbody = table.querySelector('#clients-tbody');
-        this.clients.forEach(client => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${client.name || 'Não informado'}</td>
-                <td>${client.email}</td>
-                <td>${client.phone || 'Não informado'}</td>
-                <td>${this.formatDate(client.createdAt)}</td>
-                <td>0</td> <!-- TODO: Calcular número de pedidos -->
-                <td class="actions">
-                    <button class="btn btn-sm btn-primary" onclick="adminPanel.viewClientDetails('${client.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="adminPanel.editClient('${client.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    // ========== GESTÃO DE MODALS ==========
-    
-    showAddProductModal() {
+    }    // ========== GESTÃO DE MODALS ==========
+      showAddProductModal() {
+        console.log('showAddProductModal chamado');
         const modal = document.getElementById('product-modal');
         const title = document.getElementById('product-modal-title');
         const form = document.getElementById('product-form');
+        
+        console.log('Modal:', modal, 'Title:', title, 'Form:', form);
         
         if (modal && title && form) {
             title.textContent = 'Novo Produto';
@@ -2055,6 +1094,8 @@ class AdminPanel {
                 e.preventDefault();
                 await this.saveProduct(new FormData(form));
             };
+        } else {
+            console.error('Elementos do modal não encontrados');
         }
     }
 
@@ -2087,43 +1128,67 @@ class AdminPanel {
                 await this.saveProduct(new FormData(form), productId);
             };
         }
-    }
-
-    async saveProduct(formData, productId = null) {
+    }    async saveProduct(formData, productId = null) {
         try {
+            console.log('Salvando produto...', productId ? 'Atualização' : 'Criação');
+            console.log('ecommerceService disponível:', !!ecommerceService);
+            console.log('Métodos disponíveis:', Object.getOwnPropertyNames(ecommerceService.__proto__));
+            
             const productData = {
                 name: formData.get('name'),
                 description: formData.get('description'),
                 price: parseFloat(formData.get('price')),
                 category: formData.get('category'),
                 stock: parseInt(formData.get('stock')),
-                status: formData.get('status'),
+                status: formData.get('status') || 'active',
                 images: [
                     formData.get('image1'),
                     formData.get('image2')
-                ].filter(img => img)
+                ].filter(img => img && img.trim())
             };
+
+            console.log('Dados do produto:', productData);
+
+            // Verificar disponibilidade
+            if (!ecommerceService) {
+                throw new Error('ecommerceService não está disponível');
+            }
 
             let result;
             if (productId) {
+                console.log('Verificando updateProduct:', typeof ecommerceService.updateProduct);
+                if (typeof ecommerceService.updateProduct !== 'function') {
+                    throw new Error('Método updateProduct não está disponível');
+                }
                 result = await ecommerceService.updateProduct(productId, productData);
             } else {
-                result = await ecommerceService.createProduct(productData);
+                console.log('Verificando createProduct:', typeof ecommerceService.createProduct);
+                console.log('Verificando addProduct:', typeof ecommerceService.addProduct);
+                
+                if (typeof ecommerceService.createProduct === 'function') {
+                    result = await ecommerceService.createProduct(productData);
+                } else if (typeof ecommerceService.addProduct === 'function') {
+                    result = await ecommerceService.addProduct(productData);
+                } else {
+                    throw new Error('Nenhum método de criação de produto está disponível');
+                }
             }
 
-            if (result.success) {
+            console.log('Resultado da operação:', result);
+
+            if (result && result.success) {
                 this.showNotification(
                     `Produto ${productId ? 'atualizado' : 'criado'} com sucesso!`, 
                     'success'
                 );
                 this.closeModal('product-modal');
-                this.displayProducts(); // Recarregar lista
+                await this.loadProducts(); // Recarregar lista
             } else {
-                this.showNotification('Erro ao salvar produto', 'error');
+                this.showNotification(result?.error || 'Erro ao salvar produto', 'error');
             }
         } catch (error) {
             console.error('Erro ao salvar produto:', error);
-            this.showNotification('Erro ao salvar produto', 'error');
+            this.showNotification(error.message || 'Erro ao salvar produto', 'error');
         }
     }
 
@@ -2187,21 +1252,55 @@ class AdminPanel {
             style: 'currency',
             currency: 'BRL'
         }).format(value);
-    }
-
-    // Formatar data
-    formatDate(dateString) {
-        const options = {
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-            timeZone: 'America/Sao_Paulo'
-        };
-        return new Intl.DateTimeFormat('pt-BR', options).format(new Date(dateString));
+    }    // Formatar data
+    formatDate(dateInput) {
+        try {
+            let date;
+            
+            // Verificar se é um Timestamp do Firestore
+            if (dateInput && typeof dateInput === 'object' && dateInput.toDate) {
+                date = dateInput.toDate();
+            }
+            // Verificar se é uma string de data ISO
+            else if (typeof dateInput === 'string') {
+                date = new Date(dateInput);
+            }
+            // Verificar se já é um objeto Date
+            else if (dateInput instanceof Date) {
+                date = dateInput;
+            }
+            // Se for um número (timestamp em milissegundos)
+            else if (typeof dateInput === 'number') {
+                date = new Date(dateInput);
+            }
+            else {
+                // Valor inválido, retornar data atual
+                console.warn('Data inválida recebida:', dateInput);
+                date = new Date();
+            }
+            
+            // Verificar se a data é válida
+            if (isNaN(date.getTime())) {
+                console.warn('Data inválida após conversão:', dateInput);
+                return 'Data inválida';
+            }
+            
+            const options = {
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'America/Sao_Paulo'
+            };
+            
+            return new Intl.DateTimeFormat('pt-BR', options).format(date);
+        } catch (error) {
+            console.error('Erro ao formatar data:', error, 'Input:', dateInput);
+            return 'Data inválida';
+        }
     }
 
     // Obter rótulo de status
@@ -2250,8 +1349,168 @@ class AdminPanel {
             }
         });
     }
+
+    // Exibir produtos
+    displayProducts() {
+        const container = document.getElementById('products-container');
+        if (!container) {
+            console.error('Container products-container não encontrado');
+            return;
+        }
+
+        container.innerHTML = '';
+
+        if (!this.products || this.products.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-box-open fa-3x"></i>
+                    <h3>Nenhum produto encontrado</h3>
+                    <p>Clique em "Novo Produto" ou "Criar Produtos Exemplo" para começar.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'products-grid';
+
+        this.products.forEach(product => {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+            
+            const imageUrl = product.images && product.images[0] ? product.images[0] : 'https://via.placeholder.com/200x150?text=Produto';
+            const statusClass = product.status === 'active' ? 'active' : 'inactive';
+            const statusText = product.status === 'active' ? 'Ativo' : 'Inativo';
+            
+            productCard.innerHTML = `
+                <div class="product-image">
+                    <img src="${imageUrl}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200x150?text=Produto'">
+                </div>
+                <div class="product-info">
+                    <h4>${product.name}</h4>
+                    <p class="product-category">${product.category || 'Sem categoria'}</p>
+                    <p class="product-description">${(product.description || '').substring(0, 80)}${product.description && product.description.length > 80 ? '...' : ''}</p>
+                    <p class="product-price">${this.formatCurrency(product.price || 0)}</p>
+                    <p class="product-stock">Estoque: ${product.stock || 0}</p>
+                    <div class="product-status">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                </div>
+                <div class="product-actions">
+                    <button class="btn btn-sm btn-primary" onclick="adminPanel.editProduct('${product.id}')">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="adminPanel.toggleProductStatus('${product.id}')">
+                        <i class="fas fa-power-off"></i> ${product.status === 'active' ? 'Desativar' : 'Ativar'}
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="adminPanel.deleteProduct('${product.id}')">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            `;
+            
+            grid.appendChild(productCard);
+        });
+
+        container.appendChild(grid);
+        console.log('Produtos exibidos:', this.products.length);
+    }
 }
 
 // Inicializar painel admin
 const adminPanel = new AdminPanel();
+
+// Tornar adminPanel global para uso nos onclick do HTML
+window.adminPanel = adminPanel;
+
+// ========== FUNÇÃO TEMPORÁRIA PARA CRIAR PRODUTOS DE EXEMPLO ==========
+
+window.criarProdutosExemplo = async function() {
+        const produtosExemplo = [
+            {
+                name: 'Whey Protein 1kg',
+                description: 'Proteína de alta qualidade para construção muscular',
+                price: 89.90,
+                category: 'Proteínas',
+                stock: 50,
+                status: 'active',
+                images: ['https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300']
+            },
+            {
+                name: 'Creatina 300g',
+                description: 'Creatina monohidratada pura para ganho de força',
+                price: 45.90,
+                category: 'Aminoácidos',
+                stock: 30,
+                status: 'active',
+                images: ['https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300']
+            },
+            {
+                name: 'BCAA 2:1:1',
+                description: 'Aminoácidos de cadeia ramificada para recuperação muscular',
+                price: 55.90,
+                category: 'Aminoácidos',
+                stock: 25,
+                status: 'active',
+                images: ['https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300']
+            },
+            {
+                name: 'Vitamina D3 60 caps',
+                description: 'Suplemento de vitamina D3 para fortalecimento ósseo',
+                price: 29.90,
+                category: 'Vitaminas',
+                stock: 40,
+                status: 'active',
+                images: ['https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=300']
+            },
+            {
+                name: 'Pré-treino Explosive',
+                description: 'Pré-treino com cafeína e beta-alanina para energia extra',
+                price: 69.90,
+                category: 'Pré-treino',
+                stock: 20,
+                status: 'active',
+                images: ['https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300']
+            },
+            {
+                name: 'Multivitamínico 90 caps',
+                description: 'Complexo vitamínico completo para saúde geral',
+                price: 39.90,
+                category: 'Vitaminas',
+                stock: 35,
+                status: 'active',
+                images: ['https://images.unsplash.com/photo-1550572017-edd951aa8742?w=300']
+            }
+        ];        try {
+            console.log('Criando produtos de exemplo...');
+            console.log('ecommerceService disponível:', !!ecommerceService);
+            
+            for (const produto of produtosExemplo) {
+                console.log(`Criando produto: ${produto.name}`);
+                
+                let result;
+                if (typeof ecommerceService.createProduct === 'function') {
+                    result = await ecommerceService.createProduct(produto);
+                } else if (typeof ecommerceService.addProduct === 'function') {
+                    result = await ecommerceService.addProduct(produto);
+                } else {
+                    console.error('Nenhum método de criação disponível');
+                    continue;
+                }
+                
+                if (result && result.success) {
+                    console.log(`✅ Produto criado: ${produto.name}`);
+                } else {
+                    console.error(`❌ Erro ao criar produto ${produto.name}:`, result?.error);
+                }
+            }
+            
+            adminPanel.showNotification('Produtos de exemplo criados com sucesso!', 'success');
+            await adminPanel.loadProducts(); // Recarregar lista
+            
+        } catch (error) {
+            console.error('Erro ao criar produtos de exemplo:', error);
+            adminPanel.showNotification('Erro ao criar produtos de exemplo: ' + error.message, 'error');
+        }
+    };
 

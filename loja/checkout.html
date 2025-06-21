@@ -109,15 +109,37 @@
                                 <div class="form-group">
                                     <label for="cidade">Cidade *</label>
                                     <input type="text" id="cidade" name="cidade" required>
-                                </div>
-                                <div class="form-group">
+                                </div>                                <div class="form-group">
                                     <label for="estado">Estado *</label>
                                     <select id="estado" name="estado" required>
-                                        <option value="">Selecione</option>
-                                        <option value="SP">São Paulo</option>
-                                        <option value="RJ">Rio de Janeiro</option>
+                                        <option value="">Selecione seu estado</option>
+                                        <option value="AC">Acre</option>
+                                        <option value="AL">Alagoas</option>
+                                        <option value="AP">Amapá</option>
+                                        <option value="AM">Amazonas</option>
+                                        <option value="BA">Bahia</option>
+                                        <option value="CE">Ceará</option>
+                                        <option value="DF">Distrito Federal</option>
+                                        <option value="ES">Espírito Santo</option>
+                                        <option value="GO">Goiás</option>
+                                        <option value="MA">Maranhão</option>
+                                        <option value="MT">Mato Grosso</option>
+                                        <option value="MS">Mato Grosso do Sul</option>
                                         <option value="MG">Minas Gerais</option>
-                                        <!-- Adicionar todos os estados -->
+                                        <option value="PA">Pará</option>
+                                        <option value="PB">Paraíba</option>
+                                        <option value="PR">Paraná</option>
+                                        <option value="PE">Pernambuco</option>
+                                        <option value="PI">Piauí</option>
+                                        <option value="RJ">Rio de Janeiro</option>
+                                        <option value="RN">Rio Grande do Norte</option>
+                                        <option value="RS">Rio Grande do Sul</option>
+                                        <option value="RO">Rondônia</option>
+                                        <option value="RR">Roraima</option>
+                                        <option value="SC">Santa Catarina</option>
+                                        <option value="SP">São Paulo</option>
+                                        <option value="SE">Sergipe</option>
+                                        <option value="TO">Tocantins</option>
                                     </select>
                                 </div>
                             </div>
@@ -151,6 +173,13 @@
                                         </div>
                                         <i class="fas fa-truck"></i>
                                     </label>
+                                </div>                            </div>
+
+                            <!-- Formulário Mercado Pago -->
+                            <div id="opcoes-online" class="payment-details" style="display: none;">
+                                <h3>Pagamento Online via Mercado Pago</h3>
+                                <div id="mercadopago-form">
+                                    <!-- Aqui será renderizado o formulário do Mercado Pago -->
                                 </div>
                             </div>
 
@@ -176,13 +205,52 @@
                                     <label for="troco">Troco para quanto?</label>
                                     <input type="number" id="troco" name="troco" placeholder="Ex: 100.00" step="0.01">
                                 </div>
-                            </div>
-
-                            <!-- Pagamento online (oculto inicialmente) -->
+                            </div>                            <!-- Pagamento online -->
                             <div id="pagamento-online-details" class="payment-details" style="display: none;">
-                                <p>Você será redirecionado para o Mercado Pago para finalizar o pagamento.</p>
-                            </div>
-                        </div>
+                                <h3>Pagamento Online</h3>
+                                
+                                <div class="checkout-pro-info">
+                                    <div class="payment-methods-preview">
+                                        <h4>Métodos de pagamento disponíveis:</h4>
+                                        <div class="payment-icons">
+                                            <div class="payment-method">
+                                                <i class="fas fa-qrcode"></i>
+                                                <span>PIX</span>
+                                            </div>
+                                            <div class="payment-method">
+                                                <i class="fas fa-credit-card"></i>
+                                                <span>Cartão de Crédito</span>
+                                            </div>
+                                            <div class="payment-method">
+                                                <i class="fas fa-mobile-alt"></i>
+                                                <span>Cartão de Débito</span>
+                                            </div>
+                                            <div class="payment-method">
+                                                <i class="fas fa-university"></i>
+                                                <span>Boleto Bancário</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkout-pro-benefits">
+                                        <div class="benefit">
+                                            <i class="fas fa-shield-alt"></i>
+                                            <span>Pagamento 100% seguro</span>
+                                        </div>
+                                        <div class="benefit">
+                                            <i class="fas fa-clock"></i>
+                                            <span>Confirmação instantânea</span>
+                                        </div>
+                                        <div class="benefit">
+                                            <i class="fas fa-mobile-alt"></i>
+                                            <span>Compatível com dispositivos móveis</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkout-info">
+                                        <p><i class="fas fa-info-circle"></i> Ao finalizar, você será redirecionado para a página de pagamento segura do Mercado Pago.</p>
+                                    </div>
+                                </div>                            </div>
 
                         <!-- Observações -->
                         <div class="form-section">
@@ -260,9 +328,7 @@
                 <button id="voltar-home" class="btn btn-primary">Voltar ao Início</button>
             </div>
         </div>
-    </div>
-
-    <!-- Scripts -->
+    </div>    <!-- Scripts -->
     <script type="module" src="../JS/firebase-config.js"></script>
     <script type="module" src="../JS/config.js"></script>
     <script type="module" src="../JS/ecommerce-service.js"></script>

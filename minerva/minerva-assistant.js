@@ -20,16 +20,15 @@ class MinervaUltraAssistant {
             userPreferences: {},
             conversationHistory: []
         };
-        
-        // GitHub Integration System - usando sistema centralizado
+          // GitHub Integration System - desabilitado temporariamente
         this.githubIntegration = {
-            enabled: true,
+            enabled: false,
             cache: new Map(),
             fileContentCache: new Map(),
-            // Rate limiting agora gerenciado pelo sistema centralizado
-            api: gitHubAPI, // Referência ao sistema centralizado
+            // Rate limiting desabilitado
+            api: null, // Sistema desabilitado
             fileAnalysis: {
-                enabled: true,
+                enabled: false,
                 maxFileSize: 500 * 1024, // 500KB máximo por arquivo
                 allowedExtensions: ['.js', '.html', '.css', '.json', '.md', '.txt', '.py', '.jsx', '.ts', '.tsx'],
                 cacheDuration: 60 * 60 * 1000, // 1 hora cache para arquivos (mudam menos)

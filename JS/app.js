@@ -1,8 +1,9 @@
-import { produtos } from './produtos-exemplo.js';
+import { ecommerceService } from './ecommerce-service.js';
 
 // Estado da aplicação
 let carrinhoItens = JSON.parse(localStorage.getItem('carrinho')) || [];
-let produtosFiltrados = produtos;
+let produtos = []; // Produtos carregados do Firebase
+let produtosFiltrados = [];
 let produtosExibidos = 6; // Inicialmente mostrar 6 produtos
 
 // Inicialização
@@ -10,14 +11,28 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarApp();
 });
 
-function inicializarApp() {
+async function inicializarApp() {
     configurarNavegacao();
+    await carregarProdutos(); // Carregar produtos do Firebase
     exibirProdutos();
     configurarFiltros();
     configurarCarrinho();
     configurarNewsletter();
     atualizarContadorCarrinho();
     configurarScrollSuave();
+}
+
+// Carregar produtos do Firebase
+async function carregarProdutos() {
+    try {
+        produtos = await ecommerceService.getProducts({ status: 'active' });
+        produtosFiltrados = produtos;
+        console.log('Produtos carregados:', produtos.length);
+    } catch (error) {
+        console.error('Erro ao carregar produtos:', error);
+        produtos = [];
+        produtosFiltrados = [];
+    }
 }
 
 // Configuração da navegação mobile
@@ -95,18 +110,25 @@ function exibirProdutos(produtosParaExibir = produtosFiltrados.slice(0, produtos
 function criarCardProduto(produto) {
     const card = document.createElement('div');
     card.className = 'produto-card';
-    card.setAttribute('data-categoria', produto.categoria);
+    card.setAttribute('data-categoria', produto.category || produto.categoria);
+    
+    // Adaptar para estrutura do Firebase
+    const imagem = produto.images?.[0] || produto.imagem || 'https://via.placeholder.com/300x200?text=Produto';
+    const nome = produto.name || produto.nome;
+    const descricao = produto.description || produto.descricao || '';
+    const preco = produto.price || produto.preco || 0;
+    const produtoId = produto.id;
     
     card.innerHTML = `
-        <img src="${produto.imagem}" alt="${produto.nome}" class="produto-img" loading="lazy">
-        <h4>${produto.nome}</h4>
-        <p>${produto.descricao}</p>
-        <span class="preco">${formatCurrency(produto.preco)}</span>
+        <img src="${imagem}" alt="${nome}" class="produto-img" loading="lazy">
+        <h4>${nome}</h4>
+        <p>${descricao}</p>
+        <span class="preco">${formatCurrency(preco)}</span>
         <div class="produto-actions">
-            <button class="btn btn-primary" onclick="adicionarAoCarrinho(${produto.id})">
+            <button class="btn btn-primary" onclick="adicionarAoCarrinho('${produtoId}')">
                 <i class="fas fa-cart-plus"></i> Adicionar
             </button>
-            <button class="btn btn-outline" onclick="verDetalhes(${produto.id})">
+            <button class="btn btn-outline" onclick="verDetalhes('${produtoId}')">
                 Ver Detalhes
             </button>
         </div>
@@ -127,11 +149,12 @@ function configurarFiltros() {
             
             // Filtrar produtos
             const categoria = btn.getAttribute('data-category');
-            
-            if (categoria === 'todos') {
+              if (categoria === 'todos') {
                 produtosFiltrados = produtos;
             } else {
-                produtosFiltrados = produtos.filter(p => p.categoria === categoria);
+                produtosFiltrados = produtos.filter(p => 
+                    (p.categoria === categoria) || (p.category === categoria)
+                );
             }
             
             // Resetar exibição
@@ -144,7 +167,10 @@ function configurarFiltros() {
 // Funções do carrinho
 function adicionarAoCarrinho(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
-    if (!produto) return;
+    if (!produto) {
+        console.error('Produto não encontrado:', produtoId);
+        return;
+    }
     
     const itemExistente = carrinhoItens.find(item => item.id === produtoId);
     
@@ -152,7 +178,10 @@ function adicionarAoCarrinho(produtoId) {
         itemExistente.quantidade += 1;
     } else {
         carrinhoItens.push({
-            ...produto,
+            id: produto.id,
+            name: produto.name || produto.nome,
+            price: produto.price || produto.preco,
+            image: produto.images?.[0] || produto.imagem,
             quantidade: 1
         });
     }

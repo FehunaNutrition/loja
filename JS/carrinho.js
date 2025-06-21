@@ -1,18 +1,34 @@
 // Funcionalidades do Carrinho de Compras
 import { ecommerceService } from './ecommerce-service.js';
-import { produtos } from './produtos-exemplo.js';
 
 class CarrinhoManager {
     constructor() {
         this.carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
+        this.produtos = []; // Produtos carregados do Firebase
         this.cupomAplicado = null;
         this.init();
+    }    async init() {
+        try {
+            console.log('Inicializando CarrinhoManager...');
+            await this.carregarProdutos();
+            console.log('Produtos carregados, renderizando carrinho...');
+            this.renderizarCarrinho();
+            this.setupEventListeners();
+            this.verificarLoyalty();
+            console.log('CarrinhoManager inicializado com sucesso');
+        } catch (error) {
+            console.error('Erro na inicialização do CarrinhoManager:', error);
+        }
     }
 
-    init() {
-        this.renderizarCarrinho();
-        this.setupEventListeners();
-        this.verificarLoyalty();
+    async carregarProdutos() {
+        try {
+            this.produtos = await ecommerceService.getProducts({ status: 'active' });
+            console.log('Produtos carregados no carrinho:', this.produtos.length);
+        } catch (error) {
+            console.error('Erro ao carregar produtos:', error);
+            this.produtos = [];
+        }
     }
 
     setupEventListeners() {
@@ -45,9 +61,15 @@ class CarrinhoManager {
     }
 
     renderizarCarrinho() {
-        const carrinhoVazio = document.getElementById('carrinho-vazio');
-        const carrinhoConteudo = document.getElementById('carrinho-conteudo');
+        const carrinhoVazio = document.getElementById('carrinho-vazio');        const carrinhoConteudo = document.getElementById('carrinho-conteudo');
         const listaItems = document.getElementById('lista-items');
+
+        console.log('Renderizando carrinho com', this.carrinho.length, 'itens');
+
+        if (!carrinhoVazio || !carrinhoConteudo || !listaItems) {
+            console.error('Elementos do carrinho não encontrados no DOM');
+            return;
+        }
 
         if (this.carrinho.length === 0) {
             carrinhoVazio.style.display = 'block';
@@ -61,44 +83,51 @@ class CarrinhoManager {
         // Renderizar itens
         listaItems.innerHTML = '';
         this.carrinho.forEach(item => {
-            const itemElement = this.criarItemElement(item);
-            listaItems.appendChild(itemElement);
+            try {
+                const itemElement = this.criarItemElement(item);
+                listaItems.appendChild(itemElement);
+            } catch (error) {
+                console.error('Erro ao criar elemento do item:', item, error);
+            }
         });
 
         // Atualizar totais
         this.atualizarTotais();
-    }
-
-    criarItemElement(item) {
+    }    criarItemElement(item) {
         const div = document.createElement('div');
         div.className = 'carrinho-item';
         div.setAttribute('data-id', item.id);
 
+        // Adaptar para estrutura Firebase e estrutura antiga
+        const imagem = item.images?.[0] || item.imagem || item.image || 'https://via.placeholder.com/100x80?text=Produto';
+        const nome = item.name || item.nome;
+        const descricao = item.description || item.descricao || '';
+        const preco = item.price || item.preco || 0;
+
         div.innerHTML = `
-            <img src="${item.imagem}" alt="${item.nome}" class="item-imagem">
+            <img src="${imagem}" alt="${nome}" class="item-imagem" onerror="this.src='https://via.placeholder.com/100x80?text=Produto'">
             <div class="item-info">
-                <h4>${item.nome}</h4>
-                <p>${item.descricao}</p>
+                <h4>${nome}</h4>
+                <p>${descricao}</p>
             </div>
             <div class="item-preco">
-                ${this.formatarMoeda(item.preco)}
+                ${this.formatarMoeda(preco)}
             </div>
             <div class="quantidade-controls">
-                <button class="btn-quantidade btn-menos" onclick="carrinhoManager.alterarQuantidade(${item.id}, -1)">-</button>
+                <button class="btn-quantidade btn-menos" onclick="carrinhoManager.alterarQuantidade('${item.id}', -1)">-</button>
                 <input type="number" class="quantidade-input" value="${item.quantidade}" min="1" 
-                       onchange="carrinhoManager.alterarQuantidadeInput(${item.id}, this.value)">
-                <button class="btn-quantidade btn-mais" onclick="carrinhoManager.alterarQuantidade(${item.id}, 1)">+</button>
+                       onchange="carrinhoManager.alterarQuantidadeInput('${item.id}', this.value)">
+                <button class="btn-quantidade btn-mais" onclick="carrinhoManager.alterarQuantidade('${item.id}', 1)">+</button>
             </div>
-            <button class="btn-remover" onclick="carrinhoManager.removerItem(${item.id})">
+            <button class="btn-remover" onclick="carrinhoManager.removerItem('${item.id}')">
                 <i class="fas fa-trash"></i>
             </button>
         `;
 
         return div;
-    }
-
-    alterarQuantidade(id, delta) {
-        const item = this.carrinho.find(item => item.id === id);
+    }    alterarQuantidade(id, delta) {
+        // Converter ID para string para compatibilidade
+        const item = this.carrinho.find(item => String(item.id) === String(id));
         if (item) {
             item.quantidade += delta;
             if (item.quantidade <= 0) {
@@ -108,25 +137,23 @@ class CarrinhoManager {
             this.salvarCarrinho();
             this.renderizarCarrinho();
         }
-    }
-
-    alterarQuantidadeInput(id, novaQuantidade) {
+    }    alterarQuantidadeInput(id, novaQuantidade) {
         const quantidade = parseInt(novaQuantidade);
         if (quantidade <= 0) {
             this.removerItem(id);
             return;
         }
 
-        const item = this.carrinho.find(item => item.id === id);
+        // Converter ID para string para compatibilidade
+        const item = this.carrinho.find(item => String(item.id) === String(id));
         if (item) {
             item.quantidade = quantidade;
             this.salvarCarrinho();
             this.renderizarCarrinho();
         }
-    }
-
-    removerItem(id) {
-        this.carrinho = this.carrinho.filter(item => item.id !== id);
+    }removerItem(id) {
+        // Converter ID para string para compatibilidade
+        this.carrinho = this.carrinho.filter(item => String(item.id) !== String(id));
         this.salvarCarrinho();
         this.renderizarCarrinho();
         this.mostrarNotificacao('Item removido do carrinho', 'info');
@@ -157,10 +184,11 @@ class CarrinhoManager {
         } else {
             linhaDesconto.style.display = 'none';
         }
-    }
-
-    calcularSubtotal() {
-        return this.carrinho.reduce((total, item) => total + (item.preco * item.quantidade), 0);
+    }    calcularSubtotal() {
+        return this.carrinho.reduce((total, item) => {
+            const preco = item.price || item.preco || 0;
+            return total + (preco * item.quantidade);
+        }, 0);
     }
 
     calcularDesconto() {

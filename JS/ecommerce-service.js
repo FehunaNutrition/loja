@@ -134,29 +134,60 @@ class EcommerceService {
       return { success: false, error: error.message };
     }
   }
-
   // ========== PRODUTOS ==========
   async getProducts(filters = {}) {
     try {
-      let q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+      let products = [];
       
-      if (filters.category) {
-        q = query(q, where('category', '==', filters.category));
+      // Query simples sem índices compostos complexos
+      if (filters.status && filters.category) {
+        // Se tem ambos filtros, fazer duas queries separadas e filtrar
+        const q1 = query(collection(db, 'products'), where('status', '==', filters.status));
+        const querySnapshot = await getDocs(q1);
+        
+        querySnapshot.forEach((doc) => {
+          const product = { id: doc.id, ...doc.data() };
+          if (product.category === filters.category) {
+            products.push(product);
+          }
+        });
+      } else if (filters.status) {
+        // Apenas filtro de status
+        const q = query(collection(db, 'products'), where('status', '==', filters.status));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach((doc) => {
+          products.push({ id: doc.id, ...doc.data() });
+        });
+      } else if (filters.category) {
+        // Apenas filtro de categoria
+        const q = query(collection(db, 'products'), where('category', '==', filters.category));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach((doc) => {
+          products.push({ id: doc.id, ...doc.data() });
+        });
+      } else {
+        // Sem filtros - buscar todos
+        const querySnapshot = await getDocs(collection(db, 'products'));
+        
+        querySnapshot.forEach((doc) => {
+          products.push({ id: doc.id, ...doc.data() });
+        });
       }
       
-      if (filters.status) {
-        q = query(q, where('status', '==', filters.status));
-      }
-      
-      if (filters.limit) {
-        q = query(q, limit(filters.limit));
-      }
-
-      const querySnapshot = await getDocs(q);
-      const products = [];
-      querySnapshot.forEach((doc) => {
-        products.push({ id: doc.id, ...doc.data() });
+      // Ordenar por data de criação (mais recentes primeiro)
+      products.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime;
       });
+      
+      // Aplicar limite se especificado
+      if (filters.limit) {
+        products = products.slice(0, filters.limit);
+      }
+      
       return products;
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
@@ -191,6 +222,13 @@ class EcommerceService {
     } catch (error) {
       return { success: false, error: error.message };
     }
+  }
+
+  // ========== ALIAS PARA COMPATIBILIDADE ==========
+  
+  // Alias para createProduct (usado no admin)
+  async createProduct(productData) {
+    return await this.addProduct(productData);
   }
 
   async updateProduct(productId, productData) {
@@ -262,46 +300,75 @@ class EcommerceService {
       return { success: true, url: downloadURL };
     } catch (error) {
       return { success: false, error: error.message };
-    }
-  }
+    }  }
 
   // ========== PEDIDOS ==========
   async createOrder(orderData) {
     try {
-      const orderId = `ORD${Date.now().toString().slice(-8)}`;
+      console.log('=== INICIANDO CRIAÇÃO DO PEDIDO ===');
+      console.log('Dados recebidos:', orderData);
       
-      const order = {
+      const orderId = `ORD${Date.now().toString().slice(-8)}`;
+      console.log('ID do pedido gerado:', orderId);      const order = {
         ...orderData,
         orderId: orderId,
-        status: CONFIG.ORDER_STATUS.PENDING,
+        status: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         userId: this.currentUser?.uid || null,
         timeline: [{
-          status: CONFIG.ORDER_STATUS.PENDING,
-          timestamp: serverTimestamp(),
+          status: 'pending',
+          timestamp: new Date().toISOString(),
           description: 'Pedido criado e aguardando confirmação'
         }]
       };
       
-      const docRef = await addDoc(collection(db, 'orders'), order);
+      console.log('Objeto do pedido montado:', order);
+      console.log('Salvando pedido no Firebase...');
       
-      // Atualizar estoque dos produtos
+      const docRef = await addDoc(collection(db, 'orders'), order);
+      console.log('Pedido salvo com ID:', docRef.id);
+        // Atualizar estoque dos produtos
+      console.log('Atualizando estoque dos produtos...');
       for (const item of orderData.items) {
-        await this.updateProductStock(item.id, item.quantity, 'decrease');
-        await this.incrementProductSales(item.id, item.quantity);
+        console.log(`Atualizando estoque do produto ${item.id}, quantidade: ${item.quantidade}`);
+        try {
+          // Usar tanto quantidade quanto quantity para compatibilidade
+          const qty = item.quantidade || item.quantity || 1;
+          await this.updateProductStock(item.id, qty, 'decrease');
+          await this.incrementProductSales(item.id, qty);
+        } catch (stockError) {
+          console.warn('Erro ao atualizar estoque do produto:', item.id, stockError);
+          // Não quebrar o fluxo por erro de estoque
+        }
       }
       
       // Atualizar dados do cliente
       if (this.currentUser) {
-        await this.updateCustomerStats(this.currentUser.uid, orderData.total);
+        console.log('Atualizando estatísticas do cliente...');
+        try {
+          await this.updateCustomerStats(this.currentUser.uid, orderData.total);
+        } catch (customerError) {
+          console.warn('Erro ao atualizar estatísticas do cliente:', customerError);
+          // Não quebrar o fluxo
+        }
       }
       
       // Enviar notificação
-      await this.sendOrderNotification(docRef.id, order);
+      console.log('Enviando notificação...');
+      try {
+        await this.sendOrderNotification(docRef.id, order);
+      } catch (notificationError) {
+        console.warn('Erro ao enviar notificação:', notificationError);
+        // Não quebrar o fluxo
+      }
       
+      console.log('=== PEDIDO CRIADO COM SUCESSO ===');
       return { success: true, orderId: docRef.id, orderNumber: orderId };
     } catch (error) {
+      console.error('=== ERRO AO CRIAR PEDIDO ===');
+      console.error('Erro completo:', error);
+      console.error('Stack trace:', error.stack);
       return { success: false, error: error.message };
     }
   }
@@ -317,11 +384,10 @@ class EcommerceService {
       
       const currentOrder = orderDoc.data();
       const timeline = currentOrder.timeline || [];
-      
-      // Adicionar novo status ao timeline
+        // Adicionar novo status ao timeline
       timeline.push({
         status: newStatus,
-        timestamp: serverTimestamp(),
+        timestamp: new Date().toISOString(),
         description: this.getStatusDescription(newStatus),
         ...additionalData
       });
@@ -341,32 +407,73 @@ class EcommerceService {
       return { success: false, error: error.message };
     }
   }
-
   async getOrders(filters = {}) {
     try {
-      let q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+      let orders = [];
       
+      // Query simples para evitar índices compostos
       if (filters.status) {
-        q = query(q, where('status', '==', filters.status));
+        const q = query(collection(db, 'orders'), where('status', '==', filters.status));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach((doc) => {
+          const order = { id: doc.id, ...doc.data() };
+          
+          // Aplicar filtros adicionais manualmente
+          let includeOrder = true;
+          
+          if (filters.userId && order.userId !== filters.userId) {
+            includeOrder = false;
+          }
+          
+          if (filters.assignedDriver && order.assignedDriver !== filters.assignedDriver) {
+            includeOrder = false;
+          }
+          
+          if (includeOrder) {
+            orders.push(order);
+          }
+        });
+      } else if (filters.userId) {
+        const q = query(collection(db, 'orders'), where('userId', '==', filters.userId));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach((doc) => {
+          const order = { id: doc.id, ...doc.data() };
+          
+          if (filters.assignedDriver && order.assignedDriver !== filters.assignedDriver) {
+            return;
+          }
+          
+          orders.push(order);
+        });
+      } else if (filters.assignedDriver) {
+        const q = query(collection(db, 'orders'), where('assignedDriver', '==', filters.assignedDriver));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach((doc) => {
+          orders.push({ id: doc.id, ...doc.data() });
+        });
+      } else {
+        // Sem filtros - buscar todos
+        const querySnapshot = await getDocs(collection(db, 'orders'));
+        
+        querySnapshot.forEach((doc) => {
+          orders.push({ id: doc.id, ...doc.data() });
+        });
       }
       
-      if (filters.userId) {
-        q = query(q, where('userId', '==', filters.userId));
-      }
-      
-      if (filters.assignedDriver) {
-        q = query(q, where('assignedDriver', '==', filters.assignedDriver));
-      }
-      
-      if (filters.limit) {
-        q = query(q, limit(filters.limit));
-      }
-      
-      const querySnapshot = await getDocs(q);
-      const orders = [];
-      querySnapshot.forEach((doc) => {
-        orders.push({ id: doc.id, ...doc.data() });
+      // Ordenar por data de criação (mais recentes primeiro)
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime;
       });
+      
+      // Aplicar limite se especificado
+      if (filters.limit) {
+        orders = orders.slice(0, filters.limit);
+      }
       
       return orders;
     } catch (error) {
@@ -579,7 +686,6 @@ class EcommerceService {
       return { success: false, error: error.message };
     }
   }
-
   // ========== RELATÓRIOS E ESTATÍSTICAS ==========
   async getDashboardStats(dateRange = 'today') {
     try {
@@ -600,35 +706,43 @@ class EcommerceService {
           startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       }
       
-      // Buscar pedidos do período
-      const ordersQuery = query(
-        collection(db, 'orders'),
-        where('createdAt', '>=', startDate),
-        orderBy('createdAt', 'desc')
-      );
+      // Buscar todos os pedidos e filtrar no cliente para evitar índices compostos
+      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      const allOrders = [];
       
-      const ordersSnapshot = await getDocs(ordersQuery);
-      const orders = [];
       ordersSnapshot.forEach((doc) => {
-        orders.push({ id: doc.id, ...doc.data() });
+        const order = { id: doc.id, ...doc.data() };
+        
+        // Filtrar por data no cliente
+        const orderDate = order.createdAt?.toDate?.() || new Date(0);
+        if (orderDate >= startDate) {
+          allOrders.push(order);
+        }
       });
       
       // Calcular estatísticas
-      const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-      const pendingOrders = orders.filter(order => order.status === 'pending').length;
-      const completedOrders = orders.filter(order => order.status === 'delivered').length;
+      const totalOrders = allOrders.length;
+      const totalRevenue = allOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const pendingOrders = allOrders.filter(order => order.status === 'pending').length;
+      const completedOrders = allOrders.filter(order => order.status === 'delivered').length;
       
-      // Buscar novos clientes
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('createdAt', '>=', startDate)
-      );
+      // Buscar todos os usuários e filtrar por data
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      let newCustomers = 0;
       
-      const usersSnapshot = await getDocs(usersQuery);
-      const newCustomers = usersSnapshot.size;
+      usersSnapshot.forEach((doc) => {
+        const user = doc.data();
+        const userDate = user.createdAt?.toDate?.() || new Date(0);
+        if (userDate >= startDate && user.role === 'customer') {
+          newCustomers++;
+        }
+      });
       
       return {
+        todayOrders: totalOrders,
+        todayRevenue: totalRevenue,
+        newClients: newCustomers,
+        averageRating: 4.8, // Valor fixo por enquanto
         totalOrders,
         totalRevenue,
         pendingOrders,
@@ -639,6 +753,9 @@ class EcommerceService {
     } catch (error) {
       console.error('Erro ao gerar estatísticas:', error);
       return {
+        todayOrders: 0,
+        todayRevenue: 0,        newClients: 0,
+        averageRating: 4.8,
         totalOrders: 0,
         totalRevenue: 0,
         pendingOrders: 0,
@@ -648,28 +765,28 @@ class EcommerceService {
       };
     }
   }
-
   async getTopSellingProducts(limit = 10) {
     try {
-      const q = query(
-        collection(db, 'products'),
-        where('sales', '>', 0),
-        orderBy('sales', 'desc'),
-        limit(limit)
-      );
-      
-      const querySnapshot = await getDocs(q);
+      // Buscar todos os produtos e filtrar no cliente
+      const querySnapshot = await getDocs(collection(db, 'products'));
       const products = [];
+      
       querySnapshot.forEach((doc) => {
-        products.push({ id: doc.id, ...doc.data() });
+        const product = { id: doc.id, ...doc.data() };
+        if ((product.sales || 0) > 0) {
+          products.push(product);
+        }
       });
       
-      return products;
+      // Ordenar por vendas (maior para menor)
+      products.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+      
+      // Aplicar limite
+      return products.slice(0, limit);
     } catch (error) {
       console.error('Erro ao buscar produtos mais vendidos:', error);
       return [];
-    }
-  }
+    }  }
 
   // ========== NOTIFICAÇÕES ==========
   async sendOrderNotification(orderId, orderData) {
@@ -678,8 +795,8 @@ class EcommerceService {
         type: 'new_order',
         orderId: orderId,
         orderNumber: orderData.orderId,
-        customerName: orderData.customer?.name,
-        total: orderData.total,
+        customerName: orderData.cliente?.nome || 'Cliente não informado',
+        total: orderData.total || 0,
         createdAt: serverTimestamp(),
         read: false,
         targetRole: 'admin'
@@ -779,6 +896,100 @@ class EcommerceService {
     }
   }
 
+  // ========== SISTEMA DE FIDELIDADE ==========
+  
+  async updateLoyaltyPoints(userId, points) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        return { success: false, error: 'Usuário não encontrado' };
+      }
+      
+      const userData = userDoc.data();
+      const currentPoints = userData.loyaltyPoints || 0;
+      const newPoints = currentPoints + points;
+      
+      // Determinar novo nível baseado nos pontos
+      let newLevel = 'BRONZE';
+      if (newPoints >= 1000) {
+        newLevel = 'GOLD';
+      } else if (newPoints >= 500) {
+        newLevel = 'SILVER';
+      }
+      
+      await updateDoc(userRef, {
+        loyaltyPoints: newPoints,
+        loyaltyLevel: newLevel,
+        updatedAt: serverTimestamp()
+      });
+      
+      return { 
+        success: true, 
+        newPoints, 
+        newLevel,
+        pointsAdded: points
+      };
+    } catch (error) {
+      console.error('Erro ao atualizar pontos de fidelidade:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getUserLoyaltyInfo(userId) {
+    try {
+      const userData = await this.getUserData(userId);
+      if (!userData) {
+        return null;
+      }
+      
+      return {
+        points: userData.loyaltyPoints || 0,
+        level: userData.loyaltyLevel || 'BRONZE',
+        totalOrders: userData.totalOrders || 0,
+        totalSpent: userData.totalSpent || 0
+      };
+    } catch (error) {
+      console.error('Erro ao buscar informações de fidelidade:', error);
+      return null;
+    }
+  }
+
+  async redeemLoyaltyPoints(userId, pointsToRedeem) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        return { success: false, error: 'Usuário não encontrado' };
+      }
+      
+      const userData = userDoc.data();
+      const currentPoints = userData.loyaltyPoints || 0;
+      
+      if (currentPoints < pointsToRedeem) {
+        return { success: false, error: 'Pontos insuficientes' };
+      }
+      
+      const newPoints = currentPoints - pointsToRedeem;
+      
+      await updateDoc(userRef, {
+        loyaltyPoints: newPoints,
+        updatedAt: serverTimestamp()
+      });
+      
+      return { 
+        success: true, 
+        newPoints,
+        pointsRedeemed: pointsToRedeem
+      };
+    } catch (error) {
+      console.error('Erro ao resgatar pontos:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   updateUIBasedOnAuth() {
     // Atualizar UI baseado no estado de autenticação
     const loginBtn = document.getElementById('login-btn');
@@ -830,6 +1041,33 @@ class EcommerceService {
         notifications.push({ id: doc.id, ...doc.data() });
       });
       callback(notifications);    });
+  }
+
+  // Buscar pedidos por referência externa (para webhook)
+  async getOrdersByReference(externalReference) {
+    try {
+      const q = query(
+        collection(db, 'orders'),
+        where('payment.external_reference', '==', externalReference),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const orders = [];
+      
+      querySnapshot.forEach((doc) => {
+        orders.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      return orders;
+    } catch (error) {
+      console.error('Erro ao buscar pedidos por referência:', error);
+      return [];
+    }
   }
 }
 
